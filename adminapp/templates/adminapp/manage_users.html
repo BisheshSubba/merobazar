@@ -1,0 +1,212 @@
+{% extends 'adminapp/admin_base.html' %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Message styling */
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+    }
+    
+    .messages .admin {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        color: #fff;
+        background-color: #4CAF50;
+        position: relative;
+    }
+    
+    .messages .admin:after {
+        content: "×";
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        cursor: pointer;
+    }
+    
+    .messages .admin.error {
+        background-color: #f44336;
+    }
+    
+    .messages .admin.warning {
+        background-color: #ff9800;
+    }
+    
+    .messages .admin.info {
+        background-color: #2196F3;
+    }
+    
+    /* Table styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    th, td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .status-available {
+        color: #28a745;
+        font-weight: 500;
+    }
+    
+    .status-unavailable {
+        color: #dc3545;
+        font-weight: 500;
+    }
+    
+    .action-btns {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-warning {
+        background-color: #ffc107;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+    }
+    
+    .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        padding: 15px 20px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .card-title {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+    <ul class="messages" id="message-container">
+        {% for message in messages %}
+            {% if 'admin' in message.tags %}
+                <li class="{{ message.tags }} admin">{{ message }}
+                    <script>
+                        // Remove message after 5 seconds
+                        setTimeout(function() {
+                            document.getElementById('message-container').style.display = 'none';
+                        }, 5000);
+                    </script>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Regular Users List</h3>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        {% if user.is_active %}
+                            <span class="status-available">Active</span>
+                        {% else %}
+                            <span class="status-unavailable">Suspended</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                    <td class="action-btns">
+                        <form action="{% url 'toggle_user_status' user.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-{% if user.is_active %}warning{% else %}success{% endif %}">
+                                <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
+                                {% if user.is_active %}Suspend{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                        <a href="{% url 'delete_user' user.id %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">No regular users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Remove message when close button is clicked
+    document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.querySelectorAll('.messages .admin');
+        messages.forEach(message => {
+            message.addEventListener('click', function(e) {
+                if (e.target === this || e.target === this.querySelector(':after')) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

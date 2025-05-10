@@ -1,0 +1,97 @@
+{% extends 'userapp/base.html' %}
+
+{% block title %}Sell Product - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Sell Your Product</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            {{ product_form.name }}
+                            {{ product_form.name.errors }}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Category</label>
+                                {{ product_form.category }}
+                                {{ product_form.category.errors }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Subcategory</label>
+                                {{ product_form.subcategory }}
+                                {{ product_form.subcategory.errors }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            {{ product_form.description }}
+                            {{ product_form.description.errors }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Price (Rs.)</label>
+                            {{ product_form.price }}
+                            {{ product_form.price.errors }}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Product Images</label>
+                            {{ image_form.images }}
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple images</small>
+                            {{ image_form.images.errors }}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i> List Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update subcategories when category changes
+    const categorySelect = document.getElementById('id_category');
+    const subcategorySelect = document.getElementById('id_subcategory');
+    
+    if (categorySelect && subcategorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            
+            // Clear existing options
+            subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+            
+            if (categoryId) {
+                // Fetch subcategories via AJAX
+                fetch(`/products/get_subcategories/?category_id=${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(subcategory => {
+                            const option = document.createElement('option');
+                            option.value = subcategory.id;
+                            option.textContent = subcategory.name;
+                            subcategorySelect.appendChild(option);
+                        });
+                    });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

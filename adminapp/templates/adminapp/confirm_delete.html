@@ -1,0 +1,23 @@
+{% extends 'adminapp/admin_base.html' %}
+
+{% block title %}Confirm Delete{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Confirm Delete</h3>
+        <a href="{{ request.META.HTTP_REFERER }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Cancel
+        </a>
+    </div>
+    <div class="card-body">
+        <p>Are you sure you want to delete "{{ object }}"?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Confirm Delete
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

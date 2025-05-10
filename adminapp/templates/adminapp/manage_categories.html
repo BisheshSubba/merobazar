@@ -1,0 +1,59 @@
+{% extends 'adminapp/admin_base.html' %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                {% if 'admin' in message.tags %}
+                    <li class="alert alert-{{ message.tags|default:"info" }}">{{ message }}</li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Categories List</h3>
+            <a href="{% url 'add_category' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Category
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Created At</th>
+                        <th>Subcategories</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                        <tr>
+                            <td>{{ category.id }}</td>
+                            <td>{{ category.name }}</td>
+                            <td>{{ category.created_at|date:"M d, Y" }}</td>
+                            <td>{{ category.subcategories.count }}</td>
+                            <td class="action-btns">
+                                <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No categories found</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

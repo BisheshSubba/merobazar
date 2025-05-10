@@ -1,0 +1,118 @@
+{% extends 'userapp/base.html' %}
+
+{% block title %}Dashboard - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">Welcome, {% if request.user.is_authenticated %}{{ request.user.username }}{% else %}Guest{% endif %}</h2>
+            
+            {% if not request.user.is_authenticated %}
+            <div class="alert alert-info">
+                <p>You are not logged in. <a href="{% url 'user_login' %}" class="alert-link">Login</a> to access all features.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Featured Products Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h4 class="mb-4">Featured Products</h4>
+            <div class="row">
+                {% for product in featured_products %}
+                <div class="col-md-4 col-lg-3 mb-4">
+                    <div class="card h-100 product-card">
+                        {% if product.images.first %}
+                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name|truncatechars:30 }}</h5>
+                            <p class="card-text text-muted">{{ product.category.name }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 text-primary">Rs. {{ product.price }}</span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-primary">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-warning">No featured products available.</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Products Section -->
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mb-4">Recently Added</h4>
+            <div class="row">
+                {% for product in recent_products %}
+                <div class="col-md-4 col-lg-3 mb-4">
+                    <div class="card h-100 product-card">
+                        {% if product.images.first %}
+                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name|truncatechars:30 }}</h5>
+                            <p class="card-text text-muted">{{ product.subcategory.name }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 text-primary">Rs. {{ product.price }}</span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-primary">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-warning">No recent products available.</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .card-img-top {
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
