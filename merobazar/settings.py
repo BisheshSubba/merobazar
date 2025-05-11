@@ -30,7 +30,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['merobazar-jnrt.onrender.com', 'localhost', '127.0.0.1']
 
-
+PORT = os.environ.get('PORT', 8000)
 
 # Application definition
 
@@ -133,3 +133,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'userapp.CustomUser'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
