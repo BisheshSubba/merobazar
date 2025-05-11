@@ -176,17 +176,29 @@
         }
         
         .category-item {
+            padding: 0;
+        }
+        
+        .category-link {
+            display: block;
             padding: 12px 20px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
+            color: #333;
+            text-decoration: none;
             transition: all 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
         }
         
-        .category-item:hover {
+        .category-link:hover {
             background-color: #f8f9fa;
+            color: var(--primary-color);
         }
         
-        .category-item .fa-chevron-right {
+        .category-item.active > .category-link {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .category-link .fa-chevron-right {
             transition: transform 0.3s ease;
         }
         
@@ -194,7 +206,6 @@
             display: none;
             background-color: #f9f9f9;
             border-radius: 0 0 8px 8px;
-            margin-top: 5px;
         }
         
         .subcategory-item {
@@ -205,7 +216,8 @@
             text-decoration: none;
         }
         
-        .subcategory-item:hover {
+        .subcategory-item:hover, 
+        .subcategory-item.active {
             background-color: #f1f1f1;
             color: var(--primary-color);
             padding-left: 35px;
@@ -244,6 +256,68 @@
             min-height: calc(100vh - 120px);
         }
         
+        /* Sidebar Styles */
+        .sidebar-nav {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-heading {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--dark-color);
+        }
+        
+        .sidebar-divider {
+            margin: 10px 0;
+            opacity: 0.2;
+        }
+        
+        .nav-link {
+            color: #6e707e;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(78, 115, 223, 0.1);
+        }
+        
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .collapse-inner {
+            padding: 10px 0 0 30px;
+        }
+        
+        .collapse-item {
+            display: block;
+            padding: 8px 15px;
+            color: #6e707e;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .collapse-item:hover, 
+        .collapse-item.active {
+            color: var(--primary-color);
+            background-color: rgba(78, 115, 223, 0.1);
+        }
+        
+        .collapse-item.active {
+            font-weight: 600;
+        }
+        
         /* Footer */
         .main-footer {
             background-color: var(--dark-color);
@@ -276,6 +350,58 @@
             transform: translateY(-3px);
         }
         
+        /* Product Grid */
+        .product-card {
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+            background: white;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .product-img {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+        
+        .product-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .product-price {
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .product-location {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+        
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
         /* Responsive Adjustments */
         @media (max-width: 992px) {
             .category-toggle span {
@@ -304,6 +430,10 @@
             .logo {
                 font-size: 1.5rem;
             }
+            
+            .category-link {
+                padding: 10px 15px;
+            }
         }
     </style>
 </head>
@@ -328,10 +458,12 @@
                             <div class="category-menu" id="categoryMenu">
                                 {% for category in categories %}
                                 <div class="category-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>{{ category.name }}</span>
-                                        <i class="fas fa-chevron-right"></i>
-                                    </div>
+                                    <a href="{% url 'products:products_by_category' category.id %}" class="category-link">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>{{ category.name }}</span>
+                                            <i class="fas fa-chevron-right"></i>
+                                        </div>
+                                    </a>
                                     <div class="subcategories">
                                         {% for subcategory in category.subcategories.all %}
                                         <a href="{% url 'products:products_by_subcategory' subcategory.id %}" class="subcategory-item">
@@ -418,7 +550,37 @@
         <div class="row">
             <!-- Sidebar (hidden on mobile) -->
             <div class="col-md-3 col-lg-2 d-none d-md-block">
-                {% include 'userapp/sidebar.html' %}
+                <nav class="sidebar-nav">
+                    <div class="sidebar-heading">
+                        Categories
+                    </div>
+                    <hr class="sidebar-divider">
+                    
+                    <ul class="nav flex-column" id="sidebarNav">
+                        {% for category in categories %}
+                        <li class="nav-item" data-category-id="{{ category.id }}">
+                            <a class="nav-link collapsed" href="#category{{ category.id }}" 
+                               data-bs-toggle="collapse" 
+                               role="button" 
+                               aria-expanded="false" 
+                               aria-controls="category{{ category.id }}">
+                                <i class="fas fa-fw fa-folder"></i>
+                                <span>{{ category.name }}</span>
+                            </a>
+                            <div class="collapse" id="category{{ category.id }}" data-bs-parent="#sidebarNav">
+                                <div class="collapse-inner">
+                                    {% for subcategory in category.subcategories.all %}
+                                    <a class="collapse-item {% if request.path == subcategory.get_absolute_url %}active{% endif %}" 
+                                       href="{% url 'products:products_by_subcategory' subcategory.id %}">
+                                        {{ subcategory.name }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
             </div>
             
             <!-- Content Area -->
@@ -487,7 +649,7 @@
             <hr class="my-4 bg-light">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; 2023 MeroBazar. All rights reserved.</p>
+                    <p class="mb-0">&copy; 2025 MeroBazar. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="text-white me-3">Privacy Policy</a>
@@ -503,24 +665,63 @@
             // Toggle main category dropdown
             const toggleBtn = document.getElementById("categoryToggle");
             const categoryMenu = document.getElementById("categoryMenu");
-    
-            toggleBtn.addEventListener("click", () => {
+            
+            toggleBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
                 categoryMenu.classList.toggle("show");
             });
-    
-            // Toggle subcategories for each category
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!categoryMenu.contains(e.target)) {
+                    categoryMenu.classList.remove("show");
+                }
+            });
+            
+            // Handle category and subcategory interactions
             const categoryItems = document.querySelectorAll(".category-item");
             categoryItems.forEach(item => {
                 const chevron = item.querySelector(".fa-chevron-right");
                 const subMenu = item.querySelector(".subcategories");
-    
-                item.addEventListener("click", () => {
+                const categoryLink = item.querySelector(".category-link");
+                
+                // Toggle subcategories when clicking the chevron
+                chevron.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     subMenu.style.display = subMenu.style.display === "block" ? "none" : "block";
                     chevron.style.transform = subMenu.style.display === "block" ? "rotate(90deg)" : "rotate(0)";
                 });
+                
+                // Highlight active category based on URL
+                const currentPath = window.location.pathname;
+                const categoryUrl = categoryLink.getAttribute('href');
+                if (currentPath.includes(categoryUrl)) {
+                    item.classList.add('active');
+                    subMenu.style.display = 'block';
+                    chevron.style.transform = 'rotate(90deg)';
+                }
+            });
+            
+            // Highlight active subcategory
+            const subcategoryItems = document.querySelectorAll(".subcategory-item");
+            subcategoryItems.forEach(item => {
+                if (window.location.pathname === item.getAttribute('href')) {
+                    item.classList.add('active');
+                    // Expand parent category
+                    const parentCategory = item.closest('.category-item');
+                    parentCategory.classList.add('active');
+                    parentCategory.querySelector('.subcategories').style.display = 'block';
+                    parentCategory.querySelector('.fa-chevron-right').style.transform = 'rotate(90deg)';
+                }
+            });
+            
+            // Initialize sidebar collapses as hidden
+            const sidebarCollapses = document.querySelectorAll('#sidebarNav .collapse');
+            sidebarCollapses.forEach(collapse => {
+                new bootstrap.Collapse(collapse, { toggle: false });
             });
         });
     </script>
-    
 </body>
 </html>

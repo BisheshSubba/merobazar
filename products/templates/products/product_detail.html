@@ -1,0 +1,273 @@
+{% extends 'userapp/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'user_dashboard' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'products:products_by_category' product.category.id %}">{{ product.category.name }}</a></li>
+            {% if product.subcategory %}
+            <li class="breadcrumb-item"><a href="{% url 'products:products_by_subcategory' product.subcategory.id %}">{{ product.subcategory.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3 border rounded" style="height: 400px; overflow: hidden;">
+                {% with product.images.first as main_image %}
+                    {% if main_image %}
+                    <img src="{{ main_image.image.url }}" class="img-fluid h-100 w-100 object-fit-cover main-product-img" alt="{{ product.name }}">
+                    {% else %}
+                    <div class="h-100 w-100 bg-light d-flex align-items-center justify-content-center">
+                        <i class="fas fa-image fa-4x text-muted"></i>
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            {% if product.images.count > 1 %}
+            <div class="d-flex flex-wrap gap-2">
+                {% for image in product.images.all %}
+                <div style="width: 80px; height: 80px; cursor: pointer;" 
+                     onclick="document.querySelector('.main-product-img').src='{{ image.image.url }}'">
+                    <img src="{{ image.image.url }}" class="img-fluid h-100 w-100 object-fit-cover border rounded" alt="{{ product.name }} thumbnail">
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-6">
+            <h2 class="mb-3">{{ product.name }}</h2>
+            
+            <div class="d-flex align-items-center mb-3">
+                <span class="h4 text-primary me-3">Rs. {{ product.price }}</span>
+                {% if product.old_price %}
+                <span class="text-muted text-decoration-line-through me-2">Rs. {{ product.old_price }}</span>
+                <span class="badge bg-danger">Save Rs. {{ product.get_discount_amount }}</span>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <span class="text-warning">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star-half-alt"></i>
+                    <i class="far fa-star"></i>
+                </span>
+                <span class="ms-2">({{ product.review_count }} reviews)</span>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="mb-2">Key Features</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i> Brand: {{ product.brand|default:"Not specified" }}</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Condition: {{ product.get_condition_display }}</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Stock: {{ product.stock }} available</li>
+                </ul>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="mb-2">Description</h5>
+                <p>{{ product.description|linebreaks }}</p>
+            </div>
+
+            <div class="d-flex gap-3 mb-4">
+                <div class="input-group" style="width: 120px;">
+                    <button class="btn btn-outline-secondary" type="button" onclick="decreaseQuantity()">-</button>
+                    <input type="number" class="form-control text-center" value="1" min="1" id="quantity">
+                    <button class="btn btn-outline-secondary" type="button" onclick="increaseQuantity()">+</button>
+                </div>
+                <button class="btn btn-primary flex-grow-1" id="add-to-cart">
+                    <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                </button>
+                <button class="btn btn-outline-danger" id="wishlist-btn">
+                    <i class="far fa-heart"></i>
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <img src="{% if product.user.profile.profile_pic %}{{ product.user.profile.profile_pic.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" 
+                                 class="rounded-circle" width="50" height="50" alt="Seller">
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">{{ product.user.get_full_name|default:product.user.username }}</h6>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> {{ product.user.profile.city|default:"Nepal" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs" type="button" role="tab">Specifications</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Reviews</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button" role="tab">Shipping & Returns</button>
+                </li>
+            </ul>
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="productTabsContent">
+                <div class="tab-pane fade show active" id="specs" role="tabpanel">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th scope="row" style="width: 30%">Category</th>
+                                <td>{{ product.category.name }}</td>
+                            </tr>
+                            {% if product.subcategory %}
+                            <tr>
+                                <th scope="row">Subcategory</th>
+                                <td>{{ product.subcategory.name }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th scope="row">Brand</th>
+                                <td>{{ product.brand|default:"Not specified" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Condition</th>
+                                <td>{{ product.get_condition_display }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Stock</th>
+                                <td>{{ product.stock }} items available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="reviews" role="tabpanel">
+                    {% if product.reviews.all %}
+                        {% for review in product.reviews.all %}
+                        <div class="mb-3">
+                            <strong>{{ review.user.username }}</strong>
+                            <div class="text-warning">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                    <i class="fas fa-star"></i>
+                                    {% else %}
+                                    <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p>{{ review.comment }}</p>
+                            <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info">No reviews yet. Be the first to review this product!</div>
+                    {% endif %}
+                </div>
+                <div class="tab-pane fade" id="shipping" role="tabpanel">
+                    <h5>Shipping Policy</h5>
+                    <p>Free shipping within Kathmandu valley. Outside valley shipping charges may apply.</p>
+                    <h5>Return Policy</h5>
+                    <p>7 days return policy for defective products. Buyer pays return shipping.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if related_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">You may also like</h3>
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                {% for related in related_products %}
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <a href="{% url 'products:product_details' related.id %}">
+                            {% with related.images.first as first_image %}
+                                {% if first_image %}
+                                <img src="{{ first_image.image.url }}" class="card-img-top" alt="{{ related.name }}">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                            {% endwith %}
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{% url 'products:product_details' related.id %}" class="text-decoration-none text-dark">
+                                    {{ related.name|truncatechars:30 }}
+                                </a>
+                            </h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 text-primary">Rs. {{ related.price }}</span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-primary">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function increaseQuantity() {
+        const quantityInput = document.getElementById('quantity');
+        quantityInput.value = parseInt(quantityInput.value) + 1;
+    }
+
+    function decreaseQuantity() {
+        const quantityInput = document.getElementById('quantity');
+        if (parseInt(quantityInput.value) > 1) {
+            quantityInput.value = parseInt(quantityInput.value) - 1;
+        }
+    }
+
+    document.getElementById('add-to-cart').addEventListener('click', function() {
+        const quantity = document.getElementById('quantity').value;
+        // Add AJAX call to add to cart
+    });
+
+    document.getElementById('wishlist-btn').addEventListener('click', function() {
+        // Add AJAX call to add to wishlist
+    });
+</script>
+
+<style>
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .object-fit-cover {
+        object-fit: cover;
+    }
+</style>
+{% endblock %}

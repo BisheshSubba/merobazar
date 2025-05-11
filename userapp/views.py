@@ -4,7 +4,8 @@ from .forms import UserRegisterForm, LoginForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib import messages
-from products.models import Product, Category
+from django.http import JsonResponse
+from products.models import Product, Category, SubCategory
 
 User = get_user_model()
 
@@ -46,8 +47,8 @@ def login_view(request):
         form = LoginForm()
     return render(request, 'userapp/login.html', {'form': form})
 
-
 def user_dashboard(request):
+
     categories = Category.objects.prefetch_related('subcategories').all()
     featured_products = Product.objects.filter(is_available=True).order_by('-created_at')[:8]
     recent_products = Product.objects.filter(is_available=True).order_by('-created_at')[:8]
@@ -59,6 +60,7 @@ def user_dashboard(request):
     }
     return render(request, 'userapp/dashboard.html', context)
 
+
 def logout_view(request):
     logout(request)
-    return redirect('user_login')
+    return redirect('user_dashboard')

@@ -1,0 +1,112 @@
+{% extends 'userapp/base.html' %}
+
+{% block title %}{{ category.name }} - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mt-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'user_dashboard' %}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ category.name }}</h2>
+        <span class="badge bg-primary">{{ products.paginator.count }} products</span>
+    </div>
+    
+    {% if category.subcategories.all %}
+    <div class="mb-4">
+        <h5 class="mb-3">Subcategories</h5>
+        <div class="d-flex flex-wrap gap-2">
+            {% for subcategory in category.subcategories.all %}
+            <a href="{% url 'products:products_by_subcategory' subcategory.id %}" 
+               class="btn btn-outline-primary btn-sm">
+                {{ subcategory.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for product in products %}
+        <div class="col">
+            <div class="product-card h-100">
+                <a href="{% url 'products:product_details' product.id %}">
+                    {% with product.productimage_set.first as first_image %}
+                    {% if product.images.first %}
+                    <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                    {% else %}
+                        <div class="product-img-placeholder">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        {% endif %}
+                    {% endwith %}
+                </a>
+                <div class="p-3">
+                    <h5 class="product-title">
+                        <a href="{% url 'products:product_details' product.id %}" class="text-decoration-none text-dark">
+                            {{ product.name|truncatechars:40 }}
+                        </a>
+                    </h5>
+                    <div class="product-price">Rs. {{ product.price }}</div>
+                    <div class="product-location">
+                        <i class="fas fa-map-marker-alt"></i> {{ product.user.profile.city|default:"Nepal" }}
+                    </div>
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ product.created_at|timesince }} ago</small>
+                        <a href="#" class="text-primary"><i class="far fa-heart"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No products found in this category.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if products.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if products.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+            {% endif %}
+            
+            {% for i in products.paginator.page_range %}
+            {% if products.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if products.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
