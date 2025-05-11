@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: merobazar
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn merobazar.wsgi:application
+    postDeployCommand: |
+      python manage.py migrate
+      python manage.py collectstatic --noinput
