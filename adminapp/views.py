@@ -3,9 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from products.models import Category, SubCategory 
-from .forms import CategoryForm, SubCategoryForm
+from products.models import Category, SubCategory,SubSubCategory 
+from .forms import CategoryForm, SubCategoryForm,SubSubCategoryForm
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout
 User = get_user_model()
 
 def admin_login(request):
@@ -24,6 +25,11 @@ def admin_login(request):
             messages.error(request, "Invalid credentials or not an admin account.", extra_tags='admin')
     
     return render(request, 'adminapp/admin_login.html')
+def admin_logout(request):
+    if request.user.is_authenticated:
+        logout(request)
+        messages.success(request, "Logged out successfully.", extra_tags='admin')
+    return redirect('admin_login')
 
 def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -201,4 +207,58 @@ def delete_subcategory(request, pk):
     return render(request, 'adminapp/confirm_delete.html', {
         'object': subcategory,
         'title': 'Confirm Delete Subcategory'
+    })
+@admin_required
+def manage_subsubcategories(request):
+    subsubcategories = SubSubCategory.objects.select_related('subcategory', 'subcategory__category').all().order_by('-created_at')
+    return render(request, 'adminapp/manage_subsubcategories.html', {
+        'subsubcategories': subsubcategories
+    })
+
+@admin_required
+def add_subsubcategory(request):
+    if request.method == 'POST':
+        form = SubSubCategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Sub-Subcategory added successfully!', extra_tags='admin')
+            return redirect('manage_subsubcategories')
+    else:
+        form = SubSubCategoryForm()
+    
+    return render(request, 'adminapp/subsubcategory_form.html', {
+        'form': form,
+        'title': 'Add Sub-Subcategory'
+    })
+
+@admin_required
+def edit_subsubcategory(request, pk):
+    subsubcategory = get_object_or_404(SubSubCategory, pk=pk)
+    
+    if request.method == 'POST':
+        form = SubSubCategoryForm(request.POST, instance=subsubcategory)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Sub-Subcategory updated successfully!', extra_tags='admin')
+            return redirect('manage_subsubcategories')
+    else:
+        form = SubSubCategoryForm(instance=subsubcategory)
+    
+    return render(request, 'adminapp/subsubcategory_form.html', {
+        'form': form,
+        'title': 'Edit Sub-Subcategory'
+    })
+
+@admin_required
+def delete_subsubcategory(request, pk):
+    subsubcategory = get_object_or_404(SubSubCategory, pk=pk)
+    
+    if request.method == 'POST':
+        subsubcategory.delete()
+        messages.success(request, 'Sub-Subcategory deleted successfully!', extra_tags='admin')
+        return redirect('manage_subsubcategories')
+    
+    return render(request, 'adminapp/confirm_delete.html', {
+        'object': subsubcategory,
+        'title': 'Confirm Delete Sub-Subcategory'
     })

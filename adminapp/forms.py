@@ -1,5 +1,5 @@
 from django import forms
-from products.models import Category, SubCategory
+from products.models import Category, SubCategory,SubSubCategory
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -27,3 +27,9 @@ class SubCategoryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = Category.objects.all().order_by('name')
+
+
+class SubSubCategoryForm(forms.ModelForm):
+    class Meta:
+        model = SubSubCategory
+        fields = ['subcategory', 'name']

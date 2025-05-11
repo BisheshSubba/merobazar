@@ -1,0 +1,102 @@
+{% extends 'adminapp/admin_base.html' %}
+
+{% block title %}Edit Subsubcategory{% endblock %}
+
+{% block content %}
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            {% if 'admin' in message.tags %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ title }}</h3>
+        <a href="{% url 'manage_subcategories' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Subcategories
+        </a>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.subcategory.id_for_label }}">Subcategory</label>
+                    <div class="form-control-wrapper">
+                        {{ form.subcategory }}
+                    </div>
+                    {% if form.subcategory.errors %}
+                        <div class="error">{{ form.subcategory.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">Subsubcategory Name</label>
+                    <div class="form-control-wrapper">
+                        {{ form.name }}
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="error">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Save
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-control-wrapper select,
+    .form-control-wrapper input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        height: 40px; 
+        background-color: white;
+        transition: border-color 0.15s ease-in-out;
+    }
+    
+    .form-control-wrapper select:focus,
+    .form-control-wrapper input:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 15px;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dynamic loading if needed
+});
+</script>
+{% endblock %}

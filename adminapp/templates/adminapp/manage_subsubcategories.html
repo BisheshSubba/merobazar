@@ -1,0 +1,58 @@
+{% extends 'adminapp/admin_base.html' %}
+
+{% block title %}Manage Sub-Subcategories{% endblock %}
+
+{% block content %}
+{% if messages %} <ul class="messages">
+{% for message in messages %}
+{% if 'admin' in message.tags %} <li class="{{ message.tags }}">{{ message }}</li>
+{% endif %}
+{% endfor %} </ul>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Sub-Subcategories List</h3>
+        <a href="{% url 'add_subsubcategory' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Sub-Subcategory
+        </a>
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Category</th>
+                    <th>Subcategory</th>
+                    <th>Name</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subsubcategories %}
+                <tr>
+                    <td>{{ sub.id }}</td>
+                    <td>{{ sub.subcategory.category.name }}</td>
+                    <td>{{ sub.subcategory.name }}</td>
+                    <td>{{ sub.name }}</td>
+                    <td>{{ sub.created_at|date:"M d, Y" }}</td>
+                    <td class="action-btns">
+                        <a href="{% url 'edit_subsubcategory' sub.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'delete_subsubcategory' sub.id %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">No sub-subcategories found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

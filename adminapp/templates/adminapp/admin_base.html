@@ -417,6 +417,7 @@
                 gap: 0;
             }
         }
+        
     </style>
 </head>
 <body>
@@ -446,6 +447,11 @@
                     <i class="fas fa-tag"></i>
                     <span>Subcategories</span>
                 </a></li>
+
+                <li><a href="{% url 'manage_subsubcategories' %}" class="{% if request.resolver_match.url_name == 'manage_subsubcategories' %}active{% endif %}">
+                    <i class="fas fa-tag"></i>
+                    <span>Subsubcategories</span>
+                </a></li>
             </ul>
         </div>
     </div>
@@ -458,7 +464,7 @@
                 <p>Admin Dashboard</p>
             </div>
         </div>
-        <a href="{% url 'logout' %}" class="logout-btn">
+        <a href="{% url 'admin_logout' %}" class="logout-btn">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>

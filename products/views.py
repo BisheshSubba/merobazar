@@ -2,10 +2,23 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .forms import ProductForm, ProductImageForm
-from .models import SubCategory, Product, Category,ProductImage
+from .models import SubCategory, Product, Category,ProductImage,SubSubCategory
 from collections import defaultdict
 
 
+
+
+
+def products_by_category(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+    products = Product.objects.filter(category=category, is_available=True)
+    
+    context = {
+        'category': category,
+        'products': products,
+        'categories': Category.objects.prefetch_related('subcategories').all()
+    }
+    return render(request, 'products/products_by_category.html', context)
 
 def products_by_subcategory(request, subcategory_id):
     subcategory = get_object_or_404(SubCategory, id=subcategory_id)
@@ -18,16 +31,16 @@ def products_by_subcategory(request, subcategory_id):
     }
     return render(request, 'products/products_by_subcategory.html', context)
 
-def products_by_category(request, category_id):
-    category = get_object_or_404(Category, id=category_id)
-    products = Product.objects.filter(category=category, is_available=True)
+def products_by_subsubcategory(request, subsubcategory_id):
+    subsubcategory = get_object_or_404(SubSubCategory, id=subsubcategory_id)
+    products = Product.objects.filter(subsubcategory=subsubcategory, is_available=True)
     
     context = {
-        'category': category,
+        'subsubcategory': subsubcategory,
         'products': products,
         'categories': Category.objects.prefetch_related('subcategories').all()
     }
-    return render(request, 'products/products_by_category.html', context)
+    return render(request, 'products/products_by_subsubcategory.html', context)
 
 def get_category_from_subcategory(request):
     subcategory_id = request.GET.get('subcategory_id')
