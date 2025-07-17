@@ -1,0 +1,103 @@
+{% extends "adminapp/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                    <h6>Product Details</h6>
+                    <div>
+                        <a href="{% url 'manage_products' %}" class="btn btn-secondary btn-sm">Back to Products</a>
+                    </div>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="row px-4">
+                        <div class="col-md-6">
+                            <!-- Product Images Carousel -->
+                            <div id="productImagesCarousel" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    {% for image in product.images.all %}
+                                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                        <img src="{{ image.image.url }}" class="d-block w-100 rounded" alt="Product Image">
+                                    </div>
+                                    {% empty %}
+                                    <div class="carousel-item active">
+                                        <img src="{% static 'adminapp/img/no-image.png' %}" class="d-block w-100 rounded" alt="No image">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if product.images.count > 1 %}
+                                <button class="carousel-control-prev" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#productImagesCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h3>{{ product.name }}</h3>
+                            <p class="text-muted">SKU: {{ product.sku }}</p>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <h4 class="mb-0">${{ product.price }}</h4>
+                                <span class="badge bg-gradient-{% if product.is_active %}success{% else %}secondary{% endif %} ms-3">
+                                    {% if product.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </div>
+                            
+                            <p class="mb-4">{{ product.description }}</p>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><strong>Category:</strong> {{ product.category.name }}</p>
+                                    {% if product.subcategory %}
+                                    <p><strong>Subcategory:</strong> {{ product.subcategory.name }}</p>
+                                    {% endif %}
+                                    {% if product.subsubcategory %}
+                                    <p><strong>Sub-subcategory:</strong> {{ product.subsubcategory.name }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Stock:</strong> {{ product.stock }}</p>
+                                    <p><strong>Created:</strong> {{ product.created_at|date:"M d, Y" }}</p>
+                                    <p><strong>Updated:</strong> {{ product.updated_at|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            
+                            {% if product.attributes.all %}
+                            <div class="mb-4">
+                                <h5>Attributes</h5>
+                                <div class="row">
+                                    {% for attribute in product.attributes.all %}
+                                    <div class="col-md-6 mb-2">
+                                        <strong>{{ attribute.attribute.name }}:</strong> {{ attribute.value }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex">
+                                <a href="{% url 'edit_product' product.id %}" class="btn btn-primary me-2">Edit Product</a>
+                                <form method="post" action="{% url 'toggle_product_status' product.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn {% if product.is_active %}btn-warning{% else %}btn-success{% endif %} me-2">
+                                        {% if product.is_active %}Deactivate{% else %}Activate{% endif %}
+                                    </button>
+                                </form>
+                                <a href="{% url 'delete_product' product.id %}" class="btn btn-danger">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

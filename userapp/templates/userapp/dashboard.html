@@ -24,15 +24,21 @@
                 {% for product in featured_products %}
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 product-card">
-                        {% if product.images.first %}
-                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
-                        {% else %}
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
-                            <i class="fas fa-image fa-3x text-muted"></i>
-                        </div>
-                        {% endif %}
+                        <a href="{% url 'products:product_details' product.id %}">
+                            {% if product.images.first %}
+                            <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                            {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </a>
                         <div class="card-body">
-                            <h5 class="card-title">{{ product.name|truncatechars:30 }}</h5>
+                            <h5 class="card-title">
+                                <a href="{% url 'products:product_details' product.id %}" class="text-decoration-none text-dark">
+                                    {{ product.name|truncatechars:30 }}
+                                </a>
+                            </h5>
                             <p class="card-text text-muted">{{ product.category.name }}</p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary">Rs. {{ product.price }}</span>
@@ -65,15 +71,21 @@
                 {% for product in recent_products %}
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 product-card">
-                        {% if product.images.first %}
-                        <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
-                        {% else %}
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
-                            <i class="fas fa-image fa-3x text-muted"></i>
-                        </div>
-                        {% endif %}
+                        <a href="{% url 'products:product_details' product.id %}">
+                            {% if product.images.first %}
+                            <img src="{{ product.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                            {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </a>
                         <div class="card-body">
-                            <h5 class="card-title">{{ product.name|truncatechars:30 }}</h5>
+                            <h5 class="card-title">
+                                <a href="{% url 'products:product_details' product.id %}" class="text-decoration-none text-dark">
+                                    {{ product.name|truncatechars:30 }}
+                                </a>
+                            </h5>
                             <p class="card-text text-muted">{{ product.subcategory.name }}</p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary">Rs. {{ product.price }}</span>
@@ -113,6 +125,20 @@
     
     .card-img-top {
         border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    /* Make the entire product card clickable area look interactive */
+    .product-card a {
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .product-card a:hover {
+        text-decoration: none;
+    }
+    
+    .card-title a:hover {
+        color: var(--bs-primary) !important;
     }
 </style>
 {% endblock %}

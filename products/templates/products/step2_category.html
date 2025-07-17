@@ -1,0 +1,167 @@
+{% extends 'userapp/base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Add New Product - Select Category</h4>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="category-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="current_step" value="2">
+                        
+                        <div class="mb-4">
+                            <h5 class="mb-3">Product Category</h5>
+                            
+                            {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <strong>Error:</strong> Please correct the errors below.
+                                {{ form.non_field_errors }}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Main Category -->
+                            <div class="mb-3">
+                                <label for="id_step2-category" class="form-label">Main Category *</label>
+                                {% render_field form.category class="form-select" %}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Subcategory -->
+                            <div class="mb-3">
+                                <label for="id_step2-subcategory" class="form-label">Subcategory</label>
+                                {% render_field form.subcategory class="form-select" %}
+                                {% if form.subcategory.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.subcategory.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Sub-subcategory -->
+                            <div class="mb-3">
+                                <label for="id_step2-subsubcategory" class="form-label">Sub-subcategory</label>
+                                {% render_field form.subsubcategory class="form-select" %}
+                                {% if form.subsubcategory.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.subsubcategory.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-navigation">
+                            <button type="submit" name="previous_step" class="btn btn-secondary">
+                                Previous
+                            </button>
+                            <button type="submit" name="step2_submit" class="btn btn-primary" id="next-button">
+                                Next
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('id_step2-category');
+    const subcategorySelect = document.getElementById('id_step2-subcategory');
+    const subsubcategorySelect = document.getElementById('id_step2-subsubcategory');
+    const nextButton = document.getElementById('next-button');
+    
+    // Client-side validation
+    nextButton.addEventListener('click', function(e) {
+        if (!categorySelect.value) {
+            e.preventDefault();
+            categorySelect.classList.add('is-invalid');
+            return false;
+        }
+        return true;
+    });
+    
+    // Dynamic dropdown population
+    function loadSubcategories(categoryId) {
+        if (categoryId) {
+            fetch(`{% url 'products:get_subcategories' %}?category_id=${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    subcategorySelect.innerHTML = '<option value="">Select a subcategory (optional)</option>';
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        subcategorySelect.appendChild(option);
+                    });
+                    subcategorySelect.disabled = false;
+                    
+                    // Re-select previous value if available
+                    const prevSubcategory = "{{ form.subcategory.value|default:'' }}";
+                    if (prevSubcategory) {
+                        subcategorySelect.value = prevSubcategory;
+                        loadSubsubcategories(prevSubcategory);
+                    }
+                });
+        } else {
+            subcategorySelect.innerHTML = '<option value="">Select a subcategory (optional)</option>';
+            subcategorySelect.disabled = true;
+            subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
+            subsubcategorySelect.disabled = true;
+        }
+    }
+    
+    function loadSubsubcategories(subcategoryId) {
+        if (subcategoryId) {
+            fetch(`{% url 'products:get_subsubcategories' %}?subcategory_id=${subcategoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        subsubcategorySelect.appendChild(option);
+                    });
+                    subsubcategorySelect.disabled = false;
+                    
+                    // Re-select previous value if available
+                    const prevSubsubcategory = "{{ form.subsubcategory.value|default:'' }}";
+                    if (prevSubsubcategory) {
+                        subsubcategorySelect.value = prevSubsubcategory;
+                    }
+                });
+        } else {
+            subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
+            subsubcategorySelect.disabled = true;
+        }
+    }
+    
+    // Event listeners
+    categorySelect.addEventListener('change', function() {
+        this.classList.remove('is-invalid');
+        loadSubcategories(this.value);
+    });
+    
+    subcategorySelect.addEventListener('change', function() {
+        loadSubsubcategories(this.value);
+    });
+    
+    // Initialize form
+    if (categorySelect.value) {
+        loadSubcategories(categorySelect.value);
+    }
+});
+</script>
+{% endblock %}

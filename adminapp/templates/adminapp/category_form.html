@@ -1,29 +1,241 @@
-{% extends 'adminapp/admin_base.html' %}
+{% extends "adminapp/admin_base.html" %}
 
-{% block title %}Edit Category{% endblock %}
+{% block extra_css %}
+<style>
+    /* Main card container */
+    .category-form-page .form-card {
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        border: none;
+        overflow: hidden;
+        margin: 20px auto;
+        max-width: 800px;
+    }
+
+    /* Card header styling */
+    .category-form-page .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-bottom: none;
+    }
+
+    .category-form-page .form-header .card-title {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.5rem;
+        letter-spacing: 0.5px;
+    }
+
+    /* Card body styling */
+    .category-form-page .card-body {
+        padding: 2rem;
+        background-color: #f8f9fa;
+    }
+
+    /* Form section styling */
+    .category-form-page .form-section {
+        margin-bottom: 1.5rem;
+    }
+
+    /* Form labels */
+    .category-form-page .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.95rem;
+    }
+
+    /* Form inputs */
+    .category-form-page .form-control,
+    .category-form-page .form-select {
+        border-radius: 8px;
+        padding: 0.65rem 1rem;
+        border: 1px solid #ced4da;
+        transition: all 0.3s ease;
+        background-color: white;
+    }
+
+    .category-form-page .form-control:focus,
+    .category-form-page .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+
+    /* Form rows and columns */
+    .category-form-page .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px;
+    }
+
+    .category-form-page .form-group {
+        padding: 0 10px;
+        margin-bottom: 1.5rem;
+        flex: 1 0 0%;
+    }
+
+    /* Error messages */
+    .category-form-page .invalid-feedback {
+        color: #dc3545;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+
+    .category-form-page .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Card footer with buttons */
+    .category-form-page .card-footer {
+        padding: 1.5rem;
+        background-color: white;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+    }
+
+    /* Button styling */
+    .category-form-page .btn-form {
+        border-radius: 8px;
+        padding: 0.65rem 1.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+    }
+
+    .category-form-page .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+    .category-form-page .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .category-form-page .btn-secondary {
+        background-color: #6c757d;
+        border: none;
+    }
+
+    .category-form-page .btn-secondary:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .category-form-page .form-card {
+            margin: 10px;
+            border-radius: 8px;
+        }
+        
+        .category-form-page .card-body {
+            padding: 1.5rem;
+        }
+        
+        .category-form-page .form-row {
+            flex-direction: column;
+            margin: 0;
+        }
+        
+        .category-form-page .form-group {
+            padding: 0;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        
+        .category-form-page .card-footer {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .category-form-page .btn-form {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">{{ title }}</h3>
-        <a href="{% url 'manage_categories' %}" class="btn btn-primary">
-            <i class="fas fa-arrow-left"></i> Back to Categories
-        </a>
-    </div>
-    <div class="card-body">
+<div class="category-form-page">
+    <div class="card form-card">
+        <div class="card-header form-header">
+            <h3 class="card-title">{{ title }}</h3>
+        </div>
         <form method="post">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="{{ form.name.id_for_label }}">Category Name</label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <div class="error">{{ form.name.errors }}</div>
+            <div class="card-body">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
                 {% endif %}
+                
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Category Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.name.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if form.category or form.subcategory %}
+                    <div class="form-row">
+                        {% if form.category %}
+                        <div class="form-group col-md-6">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Parent Category</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.category.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.subcategory %}
+                        <div class="form-group col-md-6">
+                            <label for="{{ form.subcategory.id_for_label }}" class="form-label">Parent Subcategory</label>
+                            {{ form.subcategory }}
+                            {% if form.subcategory.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.subcategory.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-save"></i> Save
-            </button>
+            <div class="card-footer bg-transparent border-0">
+                <button type="submit" class="btn btn-primary btn-form">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <a href="{% url 'manage_categories' %}" class="btn btn-secondary btn-form">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
         </form>
     </div>
 </div>

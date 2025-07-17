@@ -1,0 +1,189 @@
+{% extends 'userapp/base.html' %}
+{% load static %}
+
+{% block title %}My Profile - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <!-- Profile Image - Using default if no image exists -->
+                    {% if request.user.profile.profile_pic %}
+                        <img src="{{ request.user.profile.profile_pic.url }}" 
+                             alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                    {% else %}
+                        <img src="{% static 'images/default-profile.png' %}" 
+                             alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                    {% endif %}
+                    <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+                    <p class="text-muted mb-1">{{ request.user.email }}</p>
+                    <p class="text-muted">{{ request.user.phone }}</p>
+                    <p class="text-muted">Member since: {{ request.user.date_joined|date:"F Y" }}</p>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Menu -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    Quick Actions
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'products:create_product' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus-circle me-2"></i>Sell New Product
+                    </a>
+                    <a href="{% url 'user_products' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-boxes me-2"></i>My Products
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cog me-2"></i>Account Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Profile Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                {{ form.username }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger">{{ form.phone.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">First Name</label>
+                                {{ form.first_name }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Last Name</label>
+                                {{ form.last_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Profile Picture</label>
+                                <input type="file" name="profile_pic" class="form-control">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- My Recent Products Section -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">My Products</h5>
+                </div>
+                <div class="card-body">
+                    {% if user_products %}
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            {% for product in user_products|slice:":4" %}
+                            <div class="col">
+                                <div class="card h-100 product-card">
+                                    <!-- Product Image - Using first image or default -->
+                                    {% with product.images.first as product_image %}
+                                        {% if product_image %}
+                                            <img src="{{ product_image.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
+                                        {% else %}
+                                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                                <i class="fas fa-image fa-3x text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                    <div class="card-body">
+                                        <h5 class="card-title product-title">{{ product.name }}</h5>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="product-price">Rs. {{ product.price }}</span>
+                                            {% if product.old_price %}
+                                                <small class="text-muted text-decoration-line-through">Rs. {{ product.old_price }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text product-location mt-2">
+                                            <i class="fas fa-map-marker-alt"></i> {{ product.location }}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <a href="{% url 'products:product_details' product.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{% url 'products:update_product' product.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'user_products' %}" class="btn btn-primary">View All Products</a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            You haven't listed any products yet.
+                            <a href="{% url 'products:create_product' %}" class="alert-link">List your first product</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .product-img {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    .product-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-price {
+        color: #e74a3b;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    .product-location {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}

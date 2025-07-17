@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% block extra_css %} 
+    {% endblock %}
     <style>
         :root {
             --primary: #4361ee;
@@ -188,26 +191,7 @@
             transition: var(--transition);
         }
         
-        .card:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        
-        .card-title {
-            font-size: 1.25rem;
-            color: var(--dark);
-            font-weight: 600;
-        }
-        
+
         .btn {
             padding: 10px 18px;
             border-radius: var(--border-radius);
@@ -320,41 +304,55 @@
             padding: 8px 12px;
         }
         
-        .form-group {
-            margin-bottom: 20px;
+        /* Category Tree Styles */
+        .category-tree {
+            list-style-type: none;
+            padding-left: 20px;
         }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #475569;
-            font-size: 0.9rem;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--border-radius);
-            font-size: 0.95rem;
-            transition: var(--transition);
+        .category-item {
+            margin-bottom: 5px;
+            padding: 15px;
+            border-left: 3px solid #ddd;
             background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: var(--transition);
         }
-        
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-            outline: none;
+        .category-item:hover {
+            background-color: #f5f5f5;
+            transform: translateX(5px);
         }
-        
-        .form-row {
+        .actions {
+            float: right;
             display: flex;
-            gap: 20px;
+            gap: 8px;
         }
-        
-        .form-row .form-group {
-            flex: 1;
+        .attribute-item {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid var(--primary);
+        }
+        .attribute-item .attribute-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .badge-required {
+            background-color: var(--warning);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+        .attribute-type {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-style: italic;
         }
         
         @media (max-width: 1024px) {
@@ -405,6 +403,12 @@
             .user-info div {
                 display: none;
             }
+
+            .actions {
+                float: none;
+                margin-top: 10px;
+                justify-content: flex-end;
+            }
         }
         
         @media (max-width: 576px) {
@@ -416,8 +420,23 @@
                 flex-direction: column;
                 gap: 0;
             }
+
+            .category-item {
+                padding: 10px;
+            }
+
+            .attribute-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .attribute-item .attribute-actions {
+                align-self: flex-end;
+            }
         }
-        
+
+
     </style>
 </head>
 <body>
@@ -434,6 +453,11 @@
                     <i class="fas fa-users"></i>
                     <span>Manage Users</span>
                 </a></li>
+                
+                <li><a href="{% url 'manage_products' %}" class="{% if request.resolver_match.url_name == 'manage_products' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span>Manage Products</span>
+                </a></li>
             </ul>
             
             <h3>Catalog Structure</h3>
@@ -443,14 +467,9 @@
                     <span>Categories</span>
                 </a></li>
                 
-                <li><a href="{% url 'manage_subcategories' %}" class="{% if request.resolver_match.url_name == 'manage_subcategories' %}active{% endif %}">
-                    <i class="fas fa-tag"></i>
-                    <span>Subcategories</span>
-                </a></li>
-
-                <li><a href="{% url 'manage_subsubcategories' %}" class="{% if request.resolver_match.url_name == 'manage_subsubcategories' %}active{% endif %}">
-                    <i class="fas fa-tag"></i>
-                    <span>Subsubcategories</span>
+                <li><a href="{% url 'add_attribute' %}" class="{% if request.resolver_match.url_name == 'add_attribute' or request.resolver_match.url_name == 'edit_attribute' %}active{% endif %}">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Attributes</span>
                 </a></li>
             </ul>
         </div>
@@ -470,20 +489,95 @@
     </div>
 
     <div class="main-content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
         {% block content %}{% endblock %}
     </div>
 
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <a id="confirmDeleteBtn" href="#" class="btn btn-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const deleteButtons = document.querySelectorAll('.btn-danger');
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    if (!confirm('Are you sure you want to delete this item?')) {
-                        e.preventDefault();
-                    }
+            // Delete confirmation modal
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    confirmDeleteBtn.href = this.href;
+                    deleteModal.show();
                 });
             });
 
+            // Dynamic form handling for attribute apply_to
+            const applyToSelect = document.getElementById('id_apply_to');
+            const contentTypeField = document.getElementById('id_content_type');
+            const objectIdField = document.getElementById('id_object_id');
+            
+            if (applyToSelect && contentTypeField) {
+                applyToSelect.addEventListener('change', function() {
+                    const applyTo = this.value;
+                    fetch(`/products/get-content-types/?apply_to=${applyTo}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            contentTypeField.innerHTML = '';
+                            data.content_types.forEach(ct => {
+                                const option = document.createElement('option');
+                                option.value = ct.id;
+                                option.textContent = ct.name;
+                                contentTypeField.appendChild(option);
+                            });
+                        });
+                });
+                
+                contentTypeField.addEventListener('change', function() {
+                    const contentTypeId = this.value;
+                    const applyTo = applyToSelect.value;
+                    fetch(`/products/get-objects/?content_type_id=${contentTypeId}&apply_to=${applyTo}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const objectIdSelect = document.createElement('select');
+                            objectIdSelect.name = 'object_id';
+                            objectIdSelect.id = 'id_object_id';
+                            objectIdSelect.className = 'form-control';
+                            
+                            data.objects.forEach(obj => {
+                                const option = document.createElement('option');
+                                option.value = obj.id;
+                                option.textContent = obj.name;
+                                objectIdSelect.appendChild(option);
+                            });
+                            
+                            if (objectIdField) {
+                                objectIdField.replaceWith(objectIdSelect);
+                            }
+                        });
+                });
+            }
+
+            // Active link highlighting
             const currentUrl = window.location.pathname;
             const navLinks = document.querySelectorAll('.sidebar-menu a');
             

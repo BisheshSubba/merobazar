@@ -1,0 +1,134 @@
+{% extends 'userapp/base.html' %}
+
+{% block title %}Update {{ product.name }} - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Update Product: {{ product.name }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            {{ form.name }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            {{ form.description }}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Category</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Subcategory</label>
+                                {{ form.subcategory }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sub-subcategory</label>
+                                {{ form.subsubcategory }}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Price (Rs.)</label>
+                                {{ form.price }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Condition</label>
+                                {{ form.condition }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Brand</label>
+                                {{ form.brand }}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Color</label>
+                                {{ form.color }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">City</label>
+                                {{ form.city }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Location Address</label>
+                            {{ form.location_address }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'products:product_details' product.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// JavaScript to handle dynamic category dropdowns
+document.addEventListener("DOMContentLoaded", function() {
+    const categorySelect = document.getElementById("id_category");
+    const subcategorySelect = document.getElementById("id_subcategory");
+    const subsubcategorySelect = document.getElementById("id_subsubcategory");
+
+    if (categorySelect) {
+        categorySelect.addEventListener("change", function() {
+            const categoryId = this.value;
+            if (categoryId) {
+                fetch(`/api/subcategories/?category_id=${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subcategorySelect.innerHTML = '<option value="">---------</option>';
+                        data.forEach(subcategory => {
+                            subcategorySelect.innerHTML += `<option value="${subcategory.id}">${subcategory.name}</option>`;
+                        });
+                        subsubcategorySelect.innerHTML = '<option value="">---------</option>';
+                    });
+            } else {
+                subcategorySelect.innerHTML = '<option value="">---------</option>';
+                subsubcategorySelect.innerHTML = '<option value="">---------</option>';
+            }
+        });
+    }
+
+    if (subcategorySelect) {
+        subcategorySelect.addEventListener("change", function() {
+            const subcategoryId = this.value;
+            if (subcategoryId) {
+                fetch(`/api/subsubcategories/?subcategory_id=${subcategoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subsubcategorySelect.innerHTML = '<option value="">---------</option>';
+                        data.forEach(subsubcategory => {
+                            subsubcategorySelect.innerHTML += `<option value="${subsubcategory.id}">${subsubcategory.name}</option>`;
+                        });
+                    });
+            } else {
+                subsubcategorySelect.innerHTML = '<option value="">---------</option>';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

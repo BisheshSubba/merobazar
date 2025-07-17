@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from .forms import UserRegisterForm, LoginForm
+from .forms import UserRegisterForm, LoginForm, ProfileUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib import messages
@@ -50,8 +50,8 @@ def login_view(request):
 def user_dashboard(request):
 
     categories = Category.objects.prefetch_related('subcategories').all()
-    featured_products = Product.objects.filter(is_available=True).order_by('-created_at')[:8]
-    recent_products = Product.objects.filter(is_available=True).order_by('-created_at')[:8]
+    featured_products = Product.objects.filter(is_active=True).order_by('-created_at')[:8]
+    recent_products = Product.objects.filter(is_active=True).order_by('-created_at')[:8]
     
     context = {
         'categories': categories,
@@ -64,3 +64,34 @@ def user_dashboard(request):
 def logout_view(request):
     logout(request)
     return redirect('user_dashboard')
+
+
+@login_required
+def profile_view(request):
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated!')
+            return redirect('profile')
+    else:
+        form = ProfileUpdateForm(instance=request.user)
+    
+    # Get user's products - changed from seller=request.user to user=request.user
+    user_products = Product.objects.filter(user=request.user)
+    
+    context = {
+        'form': form,
+        'user_products': user_products
+    }
+    return render(request, 'userapp/profile.html', context)
+
+@login_required
+def user_products_view(request):
+    # Changed from seller=request.user to user=request.user
+    user_products = Product.objects.filter(user=request.user).order_by('-created_at')
+    context = {
+        'user_products': user_products
+    }
+    return render(request, 'userapp/user_products.html', context)
+

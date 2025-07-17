@@ -205,7 +205,6 @@
         .subcategories {
             display: none;
             background-color: #f9f9f9;
-            border-radius: 0 0 8px 8px;
         }
         
         .subcategory-item {
@@ -214,13 +213,50 @@
             color: #555;
             transition: all 0.2s ease;
             text-decoration: none;
+            position: relative;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .subsubcategories {
+            display: none;
+            background-color: #f0f0f0;
+        }
+        
+        .subsubcategory-item {
+            padding: 8px 20px 8px 40px;
+            display: block;
+            color: #555;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .subcategory-item.has-children::after {
+            content: "\f054";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .subcategory-item.has-children.expanded::after {
+            transform: rotate(90deg);
         }
         
         .subcategory-item:hover, 
         .subcategory-item.active {
             background-color: #f1f1f1;
             color: var(--primary-color);
-            padding-left: 35px;
+        }
+        
+        .subsubcategory-item:hover, 
+        .subsubcategory-item.active {
+            background-color: #e5e5e5;
+            color: var(--primary-color);
         }
         
         /* Sell Button */
@@ -256,77 +292,6 @@
             min-height: calc(100vh - 120px);
         }
         
-        .sidebar-nav {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        
-        .sidebar-heading {
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: var(--dark-color);
-        }
-        
-        .nav-link {
-            color: #6e707e;
-            padding: 10px 15px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover {
-            color: var(--primary-color);
-            background-color: rgba(78, 115, 223, 0.1);
-        }
-        
-        .collapse-item {
-            display: block;
-            padding: 8px 15px 8px 30px;
-            color: #6e707e;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-radius: 5px;
-            margin-bottom: 5px;
-        }
-        
-        .subsubcategory-item {
-            padding: 8px 15px 8px 45px;
-            display: block;
-            color: #6e707e;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-radius: 5px;
-            margin-bottom: 3px;
-            font-size: 0.9rem;
-        }
-        
-        .collapse-item:hover, 
-        .collapse-item.active,
-        .subsubcategory-item:hover, 
-        .subsubcategory-item.active {
-            color: var(--primary-color);
-            background-color: rgba(78, 115, 223, 0.1);
-        }
-        
-        .collapse-item.active,
-        .subsubcategory-item.active {
-            font-weight: 600;
-        }
-        
-        /* Chevron rotation for expanded state */
-        .nav-link[aria-expanded="true"] .fa-chevron-right,
-        .collapse-item[aria-expanded="true"] .fa-chevron-right {
-            transform: rotate(90deg);
-        }
-        
-        .fa-chevron-right {
-            transition: transform 0.3s ease;
-            font-size: 0.8rem;
-            margin-top: 4px;
-        }
         /* Footer */
         .main-footer {
             background-color: var(--dark-color);
@@ -475,9 +440,22 @@
                                     </a>
                                     <div class="subcategories">
                                         {% for subcategory in category.subcategories.all %}
-                                        <a href="{% url 'products:products_by_subcategory' subcategory.id %}" class="subcategory-item">
-                                            {{ subcategory.name }}
-                                        </a>
+                                        <div class="subcategory-group">
+                                            <a href="{% url 'products:products_by_subcategory' subcategory.id %}" 
+                                               class="subcategory-item {% if subcategory.subsubcategories.all %}has-children{% endif %}">
+                                                {{ subcategory.name }}
+                                            </a>
+                                            {% if subcategory.subsubcategories.all %}
+                                            <div class="subsubcategories">
+                                                {% for subsubcategory in subcategory.subsubcategories.all %}
+                                                <a href="{% url 'products:products_by_subsubcategory' subsubcategory.id %}" 
+                                                   class="subsubcategory-item">
+                                                    {{ subsubcategory.name }}
+                                                </a>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -498,12 +476,12 @@
                     <div class="d-inline-block">
                         <!-- Sell Button with login check -->
                         {% if request.user.is_authenticated %}
-                            <a href="{% url 'products:add_product' %}" class="sell-btn me-2">
+                            <a href="{% url 'products:create_product' %}" class="sell-btn me-2">
                                 <i class="fas fa-plus-circle"></i>
                                 <span>Sell</span>
                             </a>
                         {% else %}
-                            <a href="{% url 'user_login' %}?next={% url 'products:add_product' %}" class="sell-btn me-2">
+                            <a href="{% url 'user_login' %}?next={% url 'products:create_product' %}" class="sell-btn me-2">
                                 <i class="fas fa-plus-circle"></i>
                                 <span>Sell</span>
                             </a>
@@ -523,8 +501,7 @@
                                     <i class="fas fa-user"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i>Profile</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2"></i>Orders</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2"></i>Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                                 </ul>
@@ -557,59 +534,8 @@
     <!-- Main Content Section -->
     <main class="container-fluid main-content">
         <div class="row">
-            <!-- Sidebar (hidden on mobile) -->
-            <div class="col-md-3 col-lg-2 d-none d-md-block">
-                <nav class="sidebar-nav">
-                    <div class="sidebar-heading">
-                        Categories
-                    </div>
-                    <hr class="sidebar-divider">
-                    
-                    <ul class="nav flex-column" id="sidebarNav">
-                        {% for category in categories %}
-                        <li class="nav-item">
-                            <a class="nav-link collapsed" href="#category{{ category.id }}" 
-                               data-bs-toggle="collapse" 
-                               role="button" 
-                               aria-expanded="false" 
-                               aria-controls="category{{ category.id }}">
-                                <i class="fas fa-fw fa-folder me-2"></i>
-                                <span>{{ category.name }}</span>
-                                <i class="fas fa-chevron-right float-end"></i>
-                            </a>
-                            <div class="collapse" id="category{{ category.id }}" data-bs-parent="#sidebarNav">
-                                <div class="ps-2">
-                                    {% for subcategory in category.subcategories.all %}
-                                    <div class="subcategory-group">
-                                        <a class="collapse-item {% if subcategory.id in active_subcategories %}active{% endif %}" 
-                                           href="#subcategory{{ subcategory.id }}" 
-                                           data-bs-toggle="collapse" 
-                                           role="button" 
-                                           aria-expanded="false" 
-                                           aria-controls="subcategory{{ subcategory.id }}">
-                                            {{ subcategory.name }}
-                                            <i class="fas fa-chevron-right float-end"></i>
-                                        </a>
-                                        <div class="collapse ps-2" id="subcategory{{ subcategory.id }}">
-                                            {% for subsubcategory in subcategory.subsubcategories.all %}
-                                            <a class="subsubcategory-item {% if subsubcategory.id == active_subsubcategory %}active{% endif %}" 
-                                               href="{% url 'products:products_by_subsubcategory' subsubcategory.id %}">
-                                                {{ subsubcategory.name }}
-                                            </a>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </nav>
-            </div>
-            
-            <!-- Content Area -->
-            <div class="col-md-9 col-lg-10">
+            <!-- Content Area (now full width) -->
+            <div class="col-12">
                 {% if messages %}
                     <div class="mb-4">
                         {% for message in messages %}
@@ -646,7 +572,7 @@
                     <h5 class="mb-3">Quick Links</h5>
                     <div class="footer-links">
                         <a href="{% url 'user_dashboard' %}">Home</a>
-                        <a href="{% url 'products:add_product' %}">Sell</a>
+                        <a href="{% url 'products:create_product' %}">Sell</a>
                         <a href="#">Categories</a>
                         <a href="#">About Us</a>
                     </div>
@@ -687,29 +613,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            
-            const activeSubcategory = document.querySelector('.collapse-item.active');
-            const activeSubsubcategory = document.querySelector('.subsubcategory-item.active');
-            
-            if (activeSubcategory) {
-                const parentCategory = activeSubcategory.closest('.collapse');
-                if (parentCategory) {
-                    new bootstrap.Collapse(parentCategory, { show: true });
-                }
-            }
-            
-            if (activeSubsubcategory) {
-                const parentSubcategory = activeSubsubcategory.closest('.collapse');
-                if (parentSubcategory) {
-                    new bootstrap.Collapse(parentSubcategory, { show: true });
-                    // Also expand the parent category
-                    const grandparentCategory = parentSubcategory.closest('.collapse');
-                    if (grandparentCategory) {
-                        new bootstrap.Collapse(grandparentCategory, { show: true });
-                    }
-                }
-            }
-            
             // Toggle main category dropdown
             const toggleBtn = document.getElementById("categoryToggle");
             const categoryMenu = document.getElementById("categoryMenu");
@@ -721,7 +624,7 @@
             
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!categoryMenu.contains(e.target)) {
+                if (!categoryMenu.contains(e.target) && !toggleBtn.contains(e.target)) {
                     categoryMenu.classList.remove("show");
                 }
             });
@@ -751,9 +654,25 @@
                 }
             });
             
-            // Highlight active subcategory
-            const subcategoryItems = document.querySelectorAll(".subcategory-item");
+            // Handle subcategory with subsubcategories
+            const subcategoryItems = document.querySelectorAll(".subcategory-item.has-children");
             subcategoryItems.forEach(item => {
+                item.addEventListener("click", function(e) {
+                    // Only prevent default if clicking on a subcategory with children
+                    if (e.target === this) {
+                        e.preventDefault();
+                        const subsubMenu = this.nextElementSibling;
+                        if (subsubMenu && subsubMenu.classList.contains("subsubcategories")) {
+                            subsubMenu.style.display = subsubMenu.style.display === "block" ? "none" : "block";
+                            this.classList.toggle("expanded");
+                        }
+                    }
+                });
+            });
+
+            // Highlight active subcategory
+            const subcategoryLinks = document.querySelectorAll(".subcategory-item:not(.has-children)");
+            subcategoryLinks.forEach(item => {
                 if (window.location.pathname === item.getAttribute('href')) {
                     item.classList.add('active');
                     // Expand parent category
@@ -763,11 +682,29 @@
                     parentCategory.querySelector('.fa-chevron-right').style.transform = 'rotate(90deg)';
                 }
             });
-            
-            // Initialize sidebar collapses as hidden
-            const sidebarCollapses = document.querySelectorAll('#sidebarNav .collapse');
-            sidebarCollapses.forEach(collapse => {
-                new bootstrap.Collapse(collapse, { toggle: false });
+
+            // Highlight active subsubcategory
+            const subsubcategoryItems = document.querySelectorAll(".subsubcategory-item");
+            subsubcategoryItems.forEach(item => {
+                if (window.location.pathname === item.getAttribute('href')) {
+                    item.classList.add('active');
+                    // Expand parent subcategory
+                    const parentSubcategory = item.closest('.subcategory-group').querySelector('.subcategory-item');
+                    if (parentSubcategory) {
+                        parentSubcategory.classList.add('expanded');
+                        const subsubMenu = parentSubcategory.nextElementSibling;
+                        if (subsubMenu) {
+                            subsubMenu.style.display = 'block';
+                        }
+                    }
+                    // Also expand parent category
+                    const parentCategory = item.closest('.category-item');
+                    if (parentCategory) {
+                        parentCategory.classList.add('active');
+                        parentCategory.querySelector('.subcategories').style.display = 'block';
+                        parentCategory.querySelector('.fa-chevron-right').style.transform = 'rotate(90deg)';
+                    }
+                }
             });
         });
     </script>
