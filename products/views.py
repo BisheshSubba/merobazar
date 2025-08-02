@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 from tempfile import mkdtemp
 from django.core.files.storage import FileSystemStorage
 from django.core.files import File
@@ -9,12 +10,13 @@ from django.core.signals import request_finished
 from django.dispatch import receiver
 from django.contrib import messages
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from django.contrib.sessions.models import Session
 from django.db import close_old_connections
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
-from .models import Category, SubCategory, SubSubCategory, Attribute, Product, ProductAttribute, ProductImage
+from .models import Category, SubCategory, SubSubCategory, Attribute, Product, ProductAttribute, ProductImage, Wishlist, Cart
 from .forms import ProductBasicInfoForm, ProductCategoryForm, ProductFinalDetailsForm, ProductImageForm, ProductAttributeForm,ProductUpdateForm
 import logging
 
@@ -399,37 +401,58 @@ def render_step4(request, product_data, form=None):
 
 def products_by_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
-    products = Product.objects.filter(category=category, is_active=True)
-
+    products_list = Product.objects.filter(category=category, is_active=True)
+    paginator = Paginator(products_list, 12)
+    page_number = request.GET.get('page')
+    products = paginator.get_page(page_number)
+    
     context = {
-        'category': category,
+        'page_title': category.name,
+        'current_category': category,
         'products': products,
-        'categories': Category.objects.prefetch_related('subcategories').all()
+        'subcategories': category.subcategories.all(),
+        'subcategory_url_name': 'products:products_by_subcategory',
+        'breadcrumbs': []
     }
-    return render(request, 'products/products_by_category.html', context)
+    return render(request, 'products/category_view.html', context)
 
 def products_by_subcategory(request, subcategory_id):
     subcategory = get_object_or_404(SubCategory, id=subcategory_id)
-    products = Product.objects.filter(subcategory=subcategory, is_active=True)
-
+    products_list = Product.objects.filter(subcategory=subcategory, is_active=True)
+    paginator = Paginator(products_list, 12)
+    page_number = request.GET.get('page')
+    products = paginator.get_page(page_number)
+    
     context = {
-        'subcategory': subcategory,
+        'page_title': subcategory.name,
+        'current_category': subcategory,
         'products': products,
-        'categories': Category.objects.prefetch_related('subcategories').all()
+        'subcategories': subcategory.subsubcategories.all(),
+        'subcategory_url_name': 'products:products_by_subsubcategory',
+        'breadcrumbs': [
+            {'name': subcategory.category.name, 'url': reverse('products:products_by_category', args=[subcategory.category.id])}
+        ]
     }
-    return render(request, 'products/products_by_subcategory.html', context)
+    return render(request, 'products/category_view.html', context)
 
 def products_by_subsubcategory(request, subsubcategory_id):
     subsubcategory = get_object_or_404(SubSubCategory, id=subsubcategory_id)
-    products = Product.objects.filter(subsubcategory=subsubcategory, is_active=True)
-
+    products_list = Product.objects.filter(subsubcategory=subsubcategory, is_active=True)
+    paginator = Paginator(products_list, 12)
+    page_number = request.GET.get('page')
+    products = paginator.get_page(page_number)
+    
     context = {
-        'subsubcategory': subsubcategory,
+        'page_title': subsubcategory.name,
+        'current_category': subsubcategory,
         'products': products,
-        'categories': Category.objects.prefetch_related('subcategories').all()
+        'subcategories': None,  # No further subcategories
+        'breadcrumbs': [
+            {'name': subsubcategory.subcategory.category.name, 'url': reverse('products:products_by_category', args=[subsubcategory.subcategory.category.id])},
+            {'name': subsubcategory.subcategory.name, 'url': reverse('products:products_by_subcategory', args=[subsubcategory.subcategory.id])}
+        ]
     }
-    return render(request, 'products/products_by_subsubcategory.html', context)
-
+    return render(request, 'products/category_view.html', context)
 def get_category_from_subcategory(request):
     subcategory_id = request.GET.get('subcategory_id')
     try:
@@ -453,14 +476,18 @@ def get_subsubcategories(request):
 def product_details(request, pk):
     product = get_object_or_404(Product, pk=pk)
     related_products = Product.objects.filter(
-        category=product.category,
-        is_active=True
-    ).exclude(pk=product.pk).order_by('?')[:4]
-
+        category=product.category
+    ).exclude(id=product.id).order_by('?')[:4]
+    
+    # Get cart product IDs for the current user
+    cart_product_ids = []
+    if request.user.is_authenticated:
+        cart_product_ids = request.user.cart_items.values_list('product_id', flat=True)
+    
     return render(request, 'products/product_detail.html', {
         'product': product,
         'related_products': related_products,
-        'categories': Category.objects.all()
+        'cart_product_ids': cart_product_ids,
     })
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -484,3 +511,123 @@ def update_product(request, pk):
         'product': product
     }
     return render(request, 'products/update_product.html', context)
+
+@login_required
+@require_POST
+def toggle_wishlist(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        wishlist_item, created = Wishlist.objects.get_or_create(
+            user=request.user,
+            product=product
+        )
+        
+        if not created:
+            wishlist_item.delete()
+            
+        return JsonResponse({
+            'status': 'added' if created else 'removed',
+            'in_wishlist': created,
+            'wishlist_count': request.user.wishlist_items.count()
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Product not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+@login_required
+def check_wishlist(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        in_wishlist = Wishlist.objects.filter(
+            user=request.user,
+            product=product
+        ).exists()
+        return JsonResponse({'in_wishlist': in_wishlist})
+    except Product.DoesNotExist:
+        return JsonResponse({'error': 'Product not found'}, status=404)
+    
+@login_required
+@require_POST
+def add_to_cart(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        # Simply create the cart item if it doesn't exist
+        Cart.objects.get_or_create(
+            user=request.user,
+            product=product
+        )
+        
+        return JsonResponse({
+            'status': 'success', 
+            'message': 'Product added to cart',
+            'cart_count': request.user.cart_items.count()
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Product not found'}, status=404)
+
+@login_required
+def cart_view(request):
+    cart_items = request.user.cart_items.select_related('product').all()
+    total = sum(item.product.price for item in cart_items)  # Sum all product prices
+    
+    return render(request, 'products/cart.html', {
+        'cart_items': cart_items,
+        'total': total
+    })
+
+@login_required
+@require_POST
+def update_cart_item(request, item_id):
+    try:
+        cart_item = Cart.objects.get(id=item_id, user=request.user)
+        action = request.POST.get('action')
+        
+        if action == 'increase':
+            if cart_item.quantity < cart_item.product.stock:
+                cart_item.quantity += 1
+                cart_item.save()
+        elif action == 'decrease':
+            if cart_item.quantity > 1:
+                cart_item.quantity -= 1
+                cart_item.save()
+            else:
+                cart_item.delete()
+                
+        return JsonResponse({
+            'status': 'success',
+            'cart_count': request.user.cart_items.count()
+        })
+    except Cart.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+
+@login_required
+@require_POST
+def remove_cart_item(request, item_id):
+    try:
+        cart_item = Cart.objects.get(id=item_id, user=request.user)
+        cart_item.delete()
+        return JsonResponse({
+            'status': 'success',
+            'cart_count': request.user.cart_items.count()
+        })
+    except Cart.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+@login_required
+def check_cart_status(request, product_id):
+    in_cart = request.user.cart_items.filter(product_id=product_id).exists()
+    return JsonResponse({'in_cart': in_cart})
+@login_required
+def wishlist_count(request):
+    count = request.user.wishlist_items.count()
+    return JsonResponse({'count': count})
+
+@login_required
+def cart_count(request):
+    count = request.user.cart_items.count()
+    return JsonResponse({'count': count})
+@login_required
+def wishlist_view(request):
+    wishlist_items = request.user.wishlist_items.select_related('product').all()
+    return render(request, 'products/wishlist.html', {
+        'wishlist_items': wishlist_items
+    })

@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.db.models import Q
 from products.models import Product, Category, SubCategory
 
 User = get_user_model()
@@ -69,7 +71,7 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     if request.method == 'POST':
-        form = ProfileUpdateForm(request.POST, instance=request.user)
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Your profile has been updated!')
@@ -95,3 +97,29 @@ def user_products_view(request):
     }
     return render(request, 'userapp/user_products.html', context)
 
+
+def search_products(request):
+    query = request.GET.get('q', '')
+    page_number = request.GET.get('page', 1)
+    
+    if query:
+        # Search in product name, description, and brand
+        products_list = Product.objects.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query) |
+            Q(brand__icontains=query),
+            is_active=True
+        ).distinct().order_by('-created_at')
+    else:
+        products_list = Product.objects.none()
+    
+    # Pagination with 12 items per page
+    paginator = Paginator(products_list, 12)
+    products = paginator.get_page(page_number)
+    
+    context = {
+        'products': products,
+        'query': query,
+        'categories': Category.objects.prefetch_related('subcategories').all(),
+    }
+    return render(request, 'userapp/search_results.html', context)

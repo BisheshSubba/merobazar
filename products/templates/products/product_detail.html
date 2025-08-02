@@ -69,7 +69,7 @@
                 <ul class="list-unstyled">
                     <li><i class="fas fa-check text-success me-2"></i> Brand: {{ product.brand|default:"Not specified" }}</li>
                     <li><i class="fas fa-check text-success me-2"></i> Condition: {{ product.get_condition_display }}</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Stock: {{ product.stock }} available</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Availability: Available</li>
                 </ul>
             </div>
 
@@ -79,13 +79,9 @@
             </div>
 
             <div class="d-flex gap-3 mb-4">
-                <div class="input-group" style="width: 120px;">
-                    <button class="btn btn-outline-secondary" type="button" onclick="decreaseQuantity()">-</button>
-                    <input type="number" class="form-control text-center" value="1" min="1" id="quantity">
-                    <button class="btn btn-outline-secondary" type="button" onclick="increaseQuantity()">+</button>
-                </div>
-                <button class="btn btn-primary flex-grow-1" id="add-to-cart">
-                    <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                <button class="btn btn-primary flex-grow-1" id="add-to-cart" {% if product.id in cart_product_ids %}disabled{% endif %}>
+                    <i class="fas fa-{% if product.id in cart_product_ids %}check{% else %}shopping-cart{% endif %} me-2"></i>
+                    {% if product.id in cart_product_ids %}Added to Cart{% else %}Add to Cart{% endif %}
                 </button>
                 <button class="btn btn-outline-danger" id="wishlist-btn">
                     <i class="far fa-heart"></i>
@@ -96,13 +92,13 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
-                            <img src="{% if product.user.profile.profile_pic %}{{ product.user.profile.profile_pic.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" 
+                            <img src="{% if product.user.profile_pic %}{{ product.user.profile_pic.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" 
                                  class="rounded-circle" width="50" height="50" alt="Seller">
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-0">{{ product.user.get_full_name|default:product.user.username }}</h6>
+                            <h6 class="mb-0">{{ product.user.username }}</h6>
                             <small class="text-muted">
-                                <i class="fas fa-map-marker-alt"></i> {{ product.user.profile.city|default:"Nepal" }}
+                                <i class="fas fa-map-marker-alt"></i> Nepal
                             </small>
                         </div>
                     </div>
@@ -147,8 +143,8 @@
                                 <td>{{ product.get_condition_display }}</td>
                             </tr>
                             <tr>
-                                <th scope="row">Stock</th>
-                                <td>{{ product.stock }} items available</td>
+                                <th scope="row">Availability</th>
+                                <td>Available</td>
                             </tr>
                         </tbody>
                     </table>
@@ -213,11 +209,11 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary">Rs. {{ related.price }}</span>
                                 <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-primary">
+                                    <button class="btn btn-sm btn-outline-primary wishlist-btn-sm" data-product-id="{{ related.id }}">
                                         <i class="far fa-heart"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-primary">
-                                        <i class="fas fa-cart-plus"></i>
+                                    <button class="btn btn-sm btn-primary add-to-cart-sm" data-product-id="{{ related.id }}" {% if related.id in cart_product_ids %}disabled{% endif %}>
+                                        <i class="fas fa-{% if related.id in cart_product_ids %}check{% else %}cart-plus{% endif %}"></i>
                                     </button>
                                 </div>
                             </div>
@@ -229,28 +225,213 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
 </div>
 
 <script>
-    function increaseQuantity() {
-        const quantityInput = document.getElementById('quantity');
-        quantityInput.value = parseInt(quantityInput.value) + 1;
-    }
-
-    function decreaseQuantity() {
-        const quantityInput = document.getElementById('quantity');
-        if (parseInt(quantityInput.value) > 1) {
-            quantityInput.value = parseInt(quantityInput.value) - 1;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toast-container');
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toastEl);
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                toastEl.remove();
+            });
         }
-    }
 
-    document.getElementById('add-to-cart').addEventListener('click', function() {
-        const quantity = document.getElementById('quantity').value;
-        // Add AJAX call to add to cart
-    });
+        // Wishlist functionality
+        const wishlistBtn = document.getElementById('wishlist-btn');
+        const productId = "{{ product.id }}";
+        
+        // Check initial wishlist status
+        fetch(`/products/wishlist/check/${productId}/`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.in_wishlist) {
+                wishlistBtn.innerHTML = '<i class="fas fa-heart text-danger"></i>';
+                wishlistBtn.classList.add('active');
+            }
+        })
+        .catch(error => console.error('Error checking wishlist:', error));
+        
+        // Toggle wishlist
+        wishlistBtn.addEventListener('click', function() {
+            fetch(`/products/wishlist/toggle/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'added') {
+                    wishlistBtn.innerHTML = '<i class="fas fa-heart text-danger"></i>';
+                    wishlistBtn.classList.add('active');
+                    showToast('Product added to wishlist');
+                    
+                    // Update wishlist count badge if exists
+                    const wishlistCount = document.getElementById('wishlist-count');
+                    if (wishlistCount) {
+                        const currentCount = parseInt(wishlistCount.textContent) || 0;
+                        wishlistCount.textContent = currentCount + 1;
+                        wishlistCount.classList.remove('d-none');
+                    }
+                } else if (data.status === 'removed') {
+                    wishlistBtn.innerHTML = '<i class="far fa-heart"></i>';
+                    wishlistBtn.classList.remove('active');
+                    showToast('Product removed from wishlist');
+                    
+                    // Update wishlist count badge if exists
+                    const wishlistCount = document.getElementById('wishlist-count');
+                    if (wishlistCount) {
+                        const currentCount = parseInt(wishlistCount.textContent) || 0;
+                        const newCount = Math.max(0, currentCount - 1);
+                        wishlistCount.textContent = newCount;
+                        if (newCount === 0) {
+                            wishlistCount.classList.add('d-none');
+                        }
+                    }
+                } else if (data.status === 'login_required') {
+                    showToast('Please login to use wishlist', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred', 'error');
+            });
+        });
+        
+        // Add to cart functionality
+        const addToCartBtn = document.getElementById('add-to-cart');
+        
+        addToCartBtn.addEventListener('click', function() {
+            fetch(`/products/cart/add/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('Product added to cart successfully');
+                    
+                    // Update cart count in navbar
+                    const cartCountElements = document.querySelectorAll('.cart-count');
+                    cartCountElements.forEach(el => {
+                        el.textContent = data.cart_count;
+                        el.classList.remove('d-none');
+                    });
 
-    document.getElementById('wishlist-btn').addEventListener('click', function() {
-        // Add AJAX call to add to wishlist
+                    // Update button state
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.innerHTML = '<i class="fas fa-check me-2"></i>Added to Cart';
+                } else if (data.status === 'error') {
+                    showToast(data.message, 'error');
+                } else if (data.status === 'login_required') {
+                    showToast('Please login to add items to cart', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred', 'error');
+            });
+        });
+
+        // Related products wishlist buttons
+        document.querySelectorAll('.wishlist-btn-sm').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                fetch(`/products/api/wishlist/toggle/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'added') {
+                        this.innerHTML = '<i class="fas fa-heart text-danger"></i>';
+                        showToast('Product added to wishlist');
+                    } else if (data.status === 'removed') {
+                        this.innerHTML = '<i class="far fa-heart"></i>';
+                        showToast('Product removed from wishlist');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred', 'error');
+                });
+            });
+        });
+
+        // Related products cart buttons
+        document.querySelectorAll('.add-to-cart-sm').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                fetch(`/cart/api/add/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast('Product added to cart successfully');
+                        
+                        // Update cart count in navbar
+                        const cartCountElements = document.querySelectorAll('.cart-count');
+                        cartCountElements.forEach(el => {
+                            el.textContent = data.cart_count;
+                            el.classList.remove('d-none');
+                        });
+
+                        // Update button state
+                        this.disabled = true;
+                        this.innerHTML = '<i class="fas fa-check"></i>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred', 'error');
+                });
+            });
+        });
     });
 </script>
 
@@ -268,6 +449,29 @@
     
     .object-fit-cover {
         object-fit: cover;
+    }
+    
+    #wishlist-btn.active {
+        border-color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    .wishlist-btn-sm.active {
+        color: #dc3545;
+    }
+    
+    .toast {
+        min-width: 250px;
+    }
+    
+    #add-to-cart[disabled] {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .add-to-cart-sm[disabled] {
+        background-color: #28a745;
+        border-color: #28a745;
     }
 </style>
 {% endblock %}

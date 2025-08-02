@@ -18,17 +18,14 @@ class ProfileUpdateForm(UserChangeForm):
     
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'phone', 'first_name', 'last_name']
+        fields = ['username', 'email', 'phone', 'profile_pic']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Make username not editable (if desired)
         self.fields['username'].disabled = True
-

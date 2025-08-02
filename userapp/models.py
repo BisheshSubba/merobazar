@@ -9,6 +9,11 @@ class CustomUser(AbstractUser):
     phone = models.CharField(max_length=15)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     status = models.BooleanField(default=True)
+    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    
+    # Remove first_name and last_name from the model
+    first_name = None
+    last_name = None
 
     def __str__(self):
         return self.username

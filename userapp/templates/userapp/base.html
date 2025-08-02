@@ -324,58 +324,7 @@
             transform: translateY(-3px);
         }
         
-        /* Product Grid */
-        .product-card {
-            border-radius: 8px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid #eee;
-            background: white;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        
-        .product-img {
-            height: 200px;
-            object-fit: cover;
-            width: 100%;
-        }
-        
-        .product-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .product-price {
-            color: var(--accent-color);
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        .product-location {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        
-        /* Breadcrumb */
-        .breadcrumb {
-            background-color: transparent;
-            padding: 0;
-            margin-bottom: 20px;
-        }
-        
-        .breadcrumb-item a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-        
+ 
         /* Responsive Adjustments */
         @media (max-width: 992px) {
             .category-toggle span {
@@ -408,6 +357,23 @@
             .category-link {
                 padding: 10px 15px;
             }
+            .search-results-count {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.no-results-container {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-results-icon {
+    opacity: 0.5;
+}
+
         }
     </style>
 </head>
@@ -464,8 +430,8 @@
                         </div>
                         
                         <!-- Search Bar -->
-                        <form class="d-flex search-bar" style="flex-grow: 1;">
-                            <input class="form-control search-input" type="search" placeholder="Search products..." aria-label="Search">
+                        <form class="d-flex search-bar" style="flex-grow: 1;" action="{% url 'search_products' %}" method="GET">
+                            <input class="form-control search-input" type="search" name="q" placeholder="Search products..." aria-label="Search" value="{{ request.GET.q }}">
                             <button class="btn search-btn" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -487,14 +453,30 @@
                             </a>
                         {% endif %}
                         
-                        <a href="#" class="header-icon">
+                             <!-- Wishlist Button -->
+                        <a href="{% url 'products:wishlist_view' %}" class="header-icon" id="nav-wishlist">
                             <i class="far fa-heart"></i>
-                            <span class="icon-badge">3</span>
+                            {% if request.user.is_authenticated %}
+                            <span class="icon-badge wishlist-count {% if not request.user.wishlist_items.count %}d-none{% endif %}">
+                                {{ request.user.wishlist_items.count }}
+                            </span>
+                            {% else %}
+                            <span class="icon-badge wishlist-count d-none">0</span>
+                            {% endif %}
                         </a>
-                        <a href="#" class="header-icon">
+                        
+                        <!-- Cart Button -->
+                        <a href="{% url 'products:cart_view' %}" class="header-icon" id="nav-cart">
                             <i class="fas fa-shopping-cart"></i>
-                            <span class="icon-badge">5</span>
+                            {% if request.user.is_authenticated %}
+                            <span class="icon-badge cart-count {% if not request.user.cart_items.count %}d-none{% endif %}">
+                                {{ request.user.cart_items.count }}
+                            </span>
+                            {% else %}
+                            <span class="icon-badge cart-count d-none">0</span>
+                            {% endif %}
                         </a>
+
                         {% if request.user.is_authenticated %}
                             <div class="dropdown d-inline-block">
                                 <button class="btn btn-link header-icon dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -707,6 +689,42 @@
                 }
             });
         });
+        document.addEventListener('DOMContentLoaded', function() {
+        // Function to update counters
+        function updateCounters() {
+            if (document.getElementById('nav-wishlist')) {
+                fetch('/products/wishlist/count/')
+                .then(response => response.json())
+                .then(data => {
+                    const wishlistBadge = document.querySelector('.wishlist-count');
+                    if (wishlistBadge) {
+                        wishlistBadge.textContent = data.count;
+                        wishlistBadge.classList.toggle('d-none', data.count === 0);
+                    }
+                });
+            }
+
+            if (document.getElementById('nav-cart')) {
+                fetch('/products/cart/count/')
+                .then(response => response.json())
+                .then(data => {
+                    const cartBadge = document.querySelector('.cart-count');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.count;
+                        cartBadge.classList.toggle('d-none', data.count === 0);
+                    }
+                });
+            }
+        }
+
+        // Update counters on page load
+        updateCounters();
+
+        // Listen for custom events that might be triggered after wishlist/cart updates
+        document.addEventListener('wishlistUpdated', updateCounters);
+        document.addEventListener('cartUpdated', updateCounters);
+    });
+        
     </script>
 </body>
 </html>

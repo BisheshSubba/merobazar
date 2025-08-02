@@ -191,21 +191,31 @@ def edit_subsubcategory(request, pk):
         'form': form,
         'title': 'Edit Sub-subcategory'
     })
-
 def add_attribute(request):
     if request.method == 'POST':
         form = AttributeForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Attribute added successfully!')
+            attribute = form.save(commit=False)
+
+            # Attach object_id manually if needed
+            object_id = form.cleaned_data.get("object_id")
+            if object_id:
+                attribute.object_id = object_id
+
+            attribute.save()
+
+            # Redirect — you can change 'manage_categories' to whatever fits
             return redirect('manage_categories')
+
     else:
-        form = AttributeForm()
+        # For GET, get object_id from query param and pass it to form
+        object_id = request.GET.get("object_id")
+        form = AttributeForm(initial={'object_id': object_id})
+
     return render(request, 'adminapp/attribute_form.html', {
         'form': form,
-        'title': 'Add Attribute'
+        'title': 'Add Attribute',
     })
-
 def edit_attribute(request, pk):
     attribute = get_object_or_404(Attribute, pk=pk)
     if request.method == 'POST':

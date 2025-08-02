@@ -10,35 +10,17 @@
             <div class="card mb-4">
                 <div class="card-body text-center">
                     <!-- Profile Image - Using default if no image exists -->
-                    {% if request.user.profile.profile_pic %}
-                        <img src="{{ request.user.profile.profile_pic.url }}" 
+                    {% if request.user.profile_pic %}
+                        <img src="{{ request.user.profile_pic.url }}" 
                              alt="Profile" class="rounded-circle mb-3" width="150" height="150">
                     {% else %}
                         <img src="{% static 'images/default-profile.png' %}" 
                              alt="Profile" class="rounded-circle mb-3" width="150" height="150">
                     {% endif %}
-                    <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+                    <h4>{{ request.user.username }}</h4>
                     <p class="text-muted mb-1">{{ request.user.email }}</p>
                     <p class="text-muted">{{ request.user.phone }}</p>
                     <p class="text-muted">Member since: {{ request.user.date_joined|date:"F Y" }}</p>
-                </div>
-            </div>
-            
-            <!-- Quick Actions Menu -->
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    Quick Actions
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="{% url 'products:create_product' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-plus-circle me-2"></i>Sell New Product
-                    </a>
-                    <a href="{% url 'user_products' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-boxes me-2"></i>My Products
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog me-2"></i>Account Settings
-                    </a>
                 </div>
             </div>
         </div>
@@ -73,18 +55,8 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">First Name</label>
-                                {{ form.first_name }}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Last Name</label>
-                                {{ form.last_name }}
-                            </div>
-                            <div class="col-md-6">
                                 <label class="form-label">Profile Picture</label>
-                                <input type="file" name="profile_pic" class="form-control">
+                                {{ form.profile_pic }}
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Update Profile</button>
