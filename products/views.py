@@ -16,7 +16,7 @@ from django.db import close_old_connections
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
-from .models import Category, SubCategory, SubSubCategory, Attribute, Product, ProductAttribute, ProductImage, Wishlist, Cart
+from .models import Category, SubCategory, SubSubCategory, Attribute, Product, ProductAttribute, ProductImage, Wishlist, Cart, Order, OrderItem,  Sale
 from .forms import ProductBasicInfoForm, ProductCategoryForm, ProductFinalDetailsForm, ProductImageForm, ProductAttributeForm,ProductUpdateForm
 import logging
 
@@ -514,6 +514,21 @@ def update_product(request, pk):
 
 @login_required
 @require_POST
+def delete_product(request, pk):
+    product = get_object_or_404(Product, pk=pk, user=request.user)
+    
+    try:
+        # Delete the product and its related data
+        product.delete()
+        messages.success(request, 'Product deleted successfully!')
+        return redirect('profile')  # Redirect to user profile after deletion
+    except Exception as e:
+        logger.error(f"Error deleting product {pk}: {str(e)}")
+        messages.error(request, 'Failed to delete product. Please try again.')
+        return redirect('products:product_details', pk=pk)
+
+@login_required
+@require_POST
 def toggle_wishlist(request, product_id):
     try:
         product = Product.objects.get(id=product_id)
@@ -631,3 +646,69 @@ def wishlist_view(request):
     return render(request, 'products/wishlist.html', {
         'wishlist_items': wishlist_items
     })
+
+
+def mark_as_sold(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, id=product_id, user=request.user)
+        
+        # Mark product as inactive
+        product.is_active = False
+        product.save()
+        
+        # Create a sale record
+        Sale.objects.create(
+            product=product,
+            buyer=None,
+            sold_price=product.price,
+            notes="Marked as sold by seller"
+        )
+        
+        messages.success(request, f'"{product.name}" has been marked as sold.')
+        return redirect('user_products')
+    
+    return redirect('user_products')
+
+@login_required
+def checkout_view(request):
+    cart_items = request.user.cart_items.select_related('product')
+
+    if not cart_items.exists():
+        return redirect('products:cart_view')  # cart empty
+
+    total_price = sum(item.product.price for item in cart_items)
+
+    order = Order.objects.create(
+        user=request.user,
+        total_price=total_price,
+        status='pending'
+    )
+
+    for item in cart_items:
+        OrderItem.objects.create(
+            order=order,
+            product=item.product,
+            seller=item.product.user,  # or the correct attribute for the product seller
+            price=item.product.price
+        )
+
+    cart_items.delete()
+
+    return redirect('products:order_success', order_id=order.id)
+
+
+@login_required
+def order_success(request, order_id):
+    order = Order.objects.get(id=order_id, user=request.user)
+    return render(request, 'products/order_success.html', {'order': order})
+
+@login_required
+def cancel_order_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    if order.status != 'cancelled':
+        order.status = 'cancelled'
+        order.save()
+        messages.success(request, f'Order #{order.id} has been cancelled.')
+    else:
+        messages.info(request, f'Order #{order.id} is already cancelled.')
+    return redirect('my_orders')

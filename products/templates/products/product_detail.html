@@ -43,7 +43,11 @@
         </div>
 
         <div class="col-md-6">
-            <h2 class="mb-3">{{ product.name }}</h2>
+            <h2 class="mb-3">{{ product.name }}
+                {% if not product.is_active %}
+                    <span class="badge bg-secondary ms-2">Sold</span>
+                {% endif %}
+            </h2>
             
             <div class="d-flex align-items-center mb-3">
                 <span class="h4 text-primary me-3">Rs. {{ product.price }}</span>
@@ -69,7 +73,13 @@
                 <ul class="list-unstyled">
                     <li><i class="fas fa-check text-success me-2"></i> Brand: {{ product.brand|default:"Not specified" }}</li>
                     <li><i class="fas fa-check text-success me-2"></i> Condition: {{ product.get_condition_display }}</li>
-                    <li><i class="fas fa-check text-success me-2"></i> Availability: Available</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Availability: 
+                        {% if product.is_active %}
+                            <span class="text-success">Available</span>
+                        {% else %}
+                            <span class="text-danger">Unavailable</span>
+                        {% endif %}
+                    </li>
                 </ul>
             </div>
 
@@ -79,9 +89,16 @@
             </div>
 
             <div class="d-flex gap-3 mb-4">
-                <button class="btn btn-primary flex-grow-1" id="add-to-cart" {% if product.id in cart_product_ids %}disabled{% endif %}>
+                <button class="btn btn-primary flex-grow-1" id="add-to-cart" 
+                        {% if not product.is_active or product.id in cart_product_ids %}disabled{% endif %}>
                     <i class="fas fa-{% if product.id in cart_product_ids %}check{% else %}shopping-cart{% endif %} me-2"></i>
-                    {% if product.id in cart_product_ids %}Added to Cart{% else %}Add to Cart{% endif %}
+                    {% if not product.is_active %}
+                        Unavailable
+                    {% elif product.id in cart_product_ids %}
+                        Added to Cart
+                    {% else %}
+                        Add to Cart
+                    {% endif %}
                 </button>
                 <button class="btn btn-outline-danger" id="wishlist-btn">
                     <i class="far fa-heart"></i>
@@ -144,7 +161,13 @@
                             </tr>
                             <tr>
                                 <th scope="row">Availability</th>
-                                <td>Available</td>
+                                <td>
+                                    {% if product.is_active %}
+                                        <span class="text-success">Available</span>
+                                    {% else %}
+                                        <span class="text-danger">Unavailable</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -205,6 +228,9 @@
                                 <a href="{% url 'products:product_details' related.id %}" class="text-decoration-none text-dark">
                                     {{ related.name|truncatechars:30 }}
                                 </a>
+                                {% if not related.is_active %}
+                                    <span class="badge bg-secondary ms-1">Sold</span>
+                                {% endif %}
                             </h5>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary">Rs. {{ related.price }}</span>
@@ -212,8 +238,10 @@
                                     <button class="btn btn-sm btn-outline-primary wishlist-btn-sm" data-product-id="{{ related.id }}">
                                         <i class="far fa-heart"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-primary add-to-cart-sm" data-product-id="{{ related.id }}" {% if related.id in cart_product_ids %}disabled{% endif %}>
+                                    <button class="btn btn-sm btn-primary add-to-cart-sm" data-product-id="{{ related.id }}" 
+                                            {% if not related.is_active or related.id in cart_product_ids %}disabled{% endif %}>
                                         <i class="fas fa-{% if related.id in cart_product_ids %}check{% else %}cart-plus{% endif %}"></i>
+                                        {% if not related.is_active %}Unavailable{% endif %}
                                     </button>
                                 </div>
                             </div>
@@ -258,6 +286,19 @@
             });
         }
 
+        // Function to update wishlist counter
+        function updateWishlistCount(count) {
+            const wishlistCountElements = document.querySelectorAll('.wishlist-count');
+            wishlistCountElements.forEach(el => {
+                el.textContent = count;
+                if (count > 0) {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
+            });
+        }
+
         // Wishlist functionality
         const wishlistBtn = document.getElementById('wishlist-btn');
         const productId = "{{ product.id }}";
@@ -297,28 +338,17 @@
                     wishlistBtn.classList.add('active');
                     showToast('Product added to wishlist');
                     
-                    // Update wishlist count badge if exists
-                    const wishlistCount = document.getElementById('wishlist-count');
-                    if (wishlistCount) {
-                        const currentCount = parseInt(wishlistCount.textContent) || 0;
-                        wishlistCount.textContent = currentCount + 1;
-                        wishlistCount.classList.remove('d-none');
-                    }
+                    // Update wishlist counter
+                    updateWishlistCount(data.wishlist_count);
+
                 } else if (data.status === 'removed') {
                     wishlistBtn.innerHTML = '<i class="far fa-heart"></i>';
                     wishlistBtn.classList.remove('active');
                     showToast('Product removed from wishlist');
                     
-                    // Update wishlist count badge if exists
-                    const wishlistCount = document.getElementById('wishlist-count');
-                    if (wishlistCount) {
-                        const currentCount = parseInt(wishlistCount.textContent) || 0;
-                        const newCount = Math.max(0, currentCount - 1);
-                        wishlistCount.textContent = newCount;
-                        if (newCount === 0) {
-                            wishlistCount.classList.add('d-none');
-                        }
-                    }
+                    // Update wishlist counter
+                    updateWishlistCount(data.wishlist_count);
+
                 } else if (data.status === 'login_required') {
                     showToast('Please login to use wishlist', 'error');
                 }
@@ -385,9 +415,16 @@
                     if (data.status === 'added') {
                         this.innerHTML = '<i class="fas fa-heart text-danger"></i>';
                         showToast('Product added to wishlist');
+                        
+                        // Update wishlist counter
+                        updateWishlistCount(data.wishlist_count);
+
                     } else if (data.status === 'removed') {
                         this.innerHTML = '<i class="far fa-heart"></i>';
                         showToast('Product removed from wishlist');
+                        
+                        // Update wishlist counter
+                        updateWishlistCount(data.wishlist_count);
                     }
                 })
                 .catch(error => {

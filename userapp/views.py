@@ -3,11 +3,12 @@ from django.contrib.auth import authenticate, login, logout
 from .forms import UserRegisterForm, LoginForm, ProfileUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
+from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from products.models import Product, Category, SubCategory
+from products.models import Product, Category, SubCategory, Order
 
 User = get_user_model()
 
@@ -87,6 +88,16 @@ def profile_view(request):
         'user_products': user_products
     }
     return render(request, 'userapp/profile.html', context)
+
+@login_required
+def my_orders_view(request):
+    orders = Order.objects.filter(user=request.user).order_by('-created_at').prefetch_related('items__product')
+    return render(request, 'userapp/my_orders.html', {'orders': orders})
+
+@login_required
+def order_detail_view(request, order_id):
+    order = get_object_or_404(Order.objects.prefetch_related('items__product'), id=order_id, user=request.user)
+    return render(request, 'userapp/order_detail.html', {'order': order})
 
 @login_required
 def user_products_view(request):

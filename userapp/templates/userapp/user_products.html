@@ -3,46 +3,202 @@
 {% block title %}My Products - MeroBazar{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Products</h2>
+        <h2 class="mb-0">My Products</h2>
         <a href="{% url 'products:create_product' %}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Add New Product
         </a>
     </div>
-    
+
     {% if user_products %}
-    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for product in user_products %}
         <div class="col">
             <div class="card h-100 product-card">
-                <img src="{{ product.image.url }}" class="card-img-top product-img" alt="{{ product.title }}">
-                <div class="card-body">
-                    <h5 class="card-title product-title">{{ product.title }}</h5>
-                    <p class="card-text product-price">Rs. {{ product.price }}</p>
-                    <p class="card-text product-location">
-                        <i class="fas fa-map-marker-alt"></i> {{ product.location }}
-                    </p>
-                    <div class="d-flex justify-content-between">
-                        <span class="badge bg-{% if product.status == 'available' %}success{% else %}secondary{% endif %}">
-                            {{ product.get_status_display }}
+                <div class="position-relative">
+                    {% with product.images.first as product_image %}
+                        {% if product_image %}
+                            <img src="{{ product_image.image.url }}" class="card-img-top product-img" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="product-img-placeholder">
+                                <i class="fas fa-image fa-3x"></i>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="product-badge">
+                        {% if product.is_featured %}
+                        <span class="badge bg-warning text-dark">Featured</span>
+                        {% endif %}
+                        <span class="badge bg-{% if product.is_active %}success{% else %}secondary{% endif %}">
+                            {% if product.is_active %}Active{% else %}Inactive{% endif %}
                         </span>
-                        <small class="text-muted">{{ product.created_at|timesince }} ago</small>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'products:product_details' product.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                    <a href="{% url 'products:update_product' product.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                
+                <div class="card-body d-flex flex-column">
+                    <h5 class="product-title">
+                        <a href="{% url 'products:product_details' product.id %}" class="text-decoration-none text-dark">
+                            {{ product.name|truncatechars:50 }}
+                        </a>
+                    </h5>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="product-price">Rs. {{ product.price }}</div>
+                        {% if product.old_price %}
+                        <small class="text-muted text-decoration-line-through">Rs. {{ product.old_price }}</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="product-meta mb-3">
+                        <div class="product-location">
+                            <i class="fas fa-map-marker-alt"></i> {{ product.location|default:"Nepal" }}
+                        </div>
+                        <small class="text-muted">Posted {{ product.created_at|timesince }} ago</small>
+                    </div>
+                    
+                    <div class="mt-auto d-flex justify-content-between">
+                        <a href="{% url 'products:product_details' product.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i> View
+                        </a>
+                        {% if product.is_active %}
+                        <form method="POST" action="{% url 'products:mark_as_sold' product.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-check me-1"></i> Mark as Sold
+                            </button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'products:update_product' product.id %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ product.id }}">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure you want to delete "{{ product.name }}"?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form method="POST" action="{% url 'products:delete_product' product.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info">
-        You haven't listed any products yet.
-        <a href="{% url 'products:create_product' %}" class="alert-link">List your first product</a>
+    <div class="text-center py-5">
+        <div class="card">
+            <div class="card-body py-5">
+                <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                <h4 class="mb-3">You haven't listed any products yet</h4>
+                <p class="text-muted mb-4">Start selling by listing your first product</p>
+                <a href="{% url 'products:create_product' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i>Add Your First Product
+                </a>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>
+
+<style>
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .product-img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .product-card:hover .product-img {
+        transform: scale(1.03);
+    }
+    
+    .product-img-placeholder {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .product-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .product-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-price {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 1.2rem;
+    }
+    
+    .product-location {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .product-meta {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .empty-state {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    @media (max-width: 767.98px) {
+        .product-title {
+            font-size: 1rem;
+        }
+        .product-price {
+            font-size: 1.1rem;
+        }
+    }
+</style>
 {% endblock %}

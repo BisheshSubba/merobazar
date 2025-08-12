@@ -58,8 +58,12 @@
                             </div>
                             <div class="product-meta d-flex justify-content-between align-items-center mt-auto">
                                 <small>{{ product.created_at|timesince }} ago</small>
-                                <button class="btn btn-sm btn-outline-primary wishlist-btn" data-product-id="{{ product.id }}">
-                                    <i class="far fa-heart"></i>
+                                <button class="btn btn-sm p-0 border-0 bg-transparent wishlist-btn" 
+                                        data-product-id="{{ product.id }}"
+                                        data-wishlist-url="{% url 'products:toggle_wishlist' product.id %}"
+                                        data-check-url="{% url 'products:check_wishlist' product.id %}">
+                                    <i class="{% if product.id in user_wishlist_ids %}fas fa-heart text-danger{% else %}far fa-heart text-secondary{% endif %}" 
+                                       id="wishlist-icon-{{ product.id }}"></i>
                                 </button>
                             </div>
                         </div>
@@ -110,8 +114,12 @@
                             </div>
                             <div class="product-meta d-flex justify-content-between align-items-center mt-auto">
                                 <small>{{ product.created_at|timesince }} ago</small>
-                                <button class="btn btn-sm btn-outline-primary wishlist-btn" data-product-id="{{ product.id }}">
-                                    <i class="far fa-heart"></i>
+                                <button class="btn btn-sm p-0 border-0 bg-transparent wishlist-btn" 
+                                        data-product-id="{{ product.id }}"
+                                        data-wishlist-url="{% url 'products:toggle_wishlist' product.id %}"
+                                        data-check-url="{% url 'products:check_wishlist' product.id %}">
+                                    <i class="{% if product.id in user_wishlist_ids %}fas fa-heart text-danger{% else %}far fa-heart text-secondary{% endif %}" 
+                                       id="wishlist-icon-{{ product.id }}"></i>
                                 </button>
                             </div>
                         </div>
@@ -153,6 +161,133 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to update wishlist icon state
+        function updateWishlistIcon(productId, isInWishlist) {
+            const icon = document.getElementById(`wishlist-icon-${productId}`);
+            if (isInWishlist) {
+                icon.classList.remove('far', 'text-secondary');
+                icon.classList.add('fas', 'text-danger');
+            } else {
+                icon.classList.remove('fas', 'text-danger');
+                icon.classList.add('far', 'text-secondary');
+            }
+        }
+
+        // Function to update wishlist counter in navigation
+        function updateWishlistCounter(count) {
+            const wishlistCountElements = document.querySelectorAll('.wishlist-count');
+            wishlistCountElements.forEach(element => {
+                element.textContent = count;
+                if (count > 0) {
+                    element.classList.remove('d-none');
+                } else {
+                    element.classList.add('d-none');
+                }
+            });
+        }
+
+        // Check initial wishlist status for all products
+        document.querySelectorAll('.wishlist-btn').forEach(button => {
+            const productId = button.getAttribute('data-product-id');
+            const checkUrl = button.getAttribute('data-check-url');
+            
+            fetch(checkUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.in_wishlist !== undefined) {
+                    updateWishlistIcon(productId, data.in_wishlist);
+                }
+            })
+            .catch(error => console.error('Error checking wishlist:', error));
+        });
+
+        // Handle wishlist toggle clicks
+        document.querySelectorAll('.wishlist-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const productId = this.getAttribute('data-product-id');
+                const url = this.getAttribute('data-wishlist-url');
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'added' || data.status === 'removed') {
+                        updateWishlistIcon(productId, data.in_wishlist);
+                        
+                        // Update wishlist counter in navigation
+                        if (data.wishlist_count !== undefined) {
+                            updateWishlistCounter(data.wishlist_count);
+                        }
+                        
+                        // Show toast notification
+                        const message = data.status === 'added' 
+                            ? 'Product added to wishlist' 
+                            : 'Product removed from wishlist';
+                        showToast(message);
+                        
+                    } else if (data.status === 'error') {
+                        showToast(data.message, 'error');
+                    } else if (data.status === 'login_required') {
+                        showToast('Please login to use wishlist', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred', 'error');
+                });
+            });
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                // Create toast container if it doesn't exist
+                const container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = '11';
+                document.body.appendChild(container);
+            }
+            
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toastEl);
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                toastEl.remove();
+            });
+        }
+    });
+</script>
+
 
 <style>
     .product-card {
@@ -276,13 +411,29 @@
     
     /* Wishlist Button */
     .wishlist-btn {
-        padding: 0.25rem 0.5rem;
-        transition: all 0.3s ease;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        outline: none !important;
     }
-    
+
     .wishlist-btn:hover {
-        background-color: var(--bs-primary);
-        color: white !important;
+        transform: scale(1.1);
+    }
+
+    .wishlist-btn i.fas.text-danger {
+        color: #dc3545 !important;
+    }
+
+    .wishlist-btn i.far.text-secondary {
+        color: #6c757d !important;
+    }
+
+    .wishlist-btn:hover i {
+        color: #dc3545 !important;
+    }
+
+    .wishlist-btn:focus {
+        box-shadow: none !important;
     }
     
     /* Responsive Adjustments */

@@ -150,10 +150,46 @@
     .continue-shopping:hover {
         transform: translateX(-3px);
     }
+
+    /* Unavailable product styling */
+    .unavailable-product {
+        background-color: #fff8f8;
+        position: relative;
+    }
+
+    .unavailable-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #e74c3c;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+
+    .unavailable-message {
+        color: #e74c3c;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .alert-unavailable {
+        background-color: #fdecea;
+        border-left: 4px solid #e74c3c;
+    }
 </style>
 
 <div class="container cart-container">
     <h2 class="cart-title">Your Shopping Cart</h2>
+    
+    {% if unavailable_items %}
+    <div class="alert alert-warning alert-unavailable mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Some products in your cart are no longer available and have been removed automatically.
+    </div>
+    {% endif %}
     
     {% if cart_items %}
     <div class="table-responsive">
@@ -168,24 +204,36 @@
             </thead>
             <tbody>
                 {% for item in cart_items %}
-                <tr>
+                <tr class="{% if not item.product.is_active %}unavailable-product{% endif %}">
                     <td>
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center position-relative">
+                            {% if not item.product.is_active %}
+                            <span class="unavailable-badge">UNAVAILABLE</span>
+                            {% endif %}
                             <div class="product-img-container me-3">
                                 <img src="{{ item.product.images.first.image.url }}" 
                                      alt="{{ item.product.name }}" 
-                                     class="product-img">
+                                     class="product-img {% if not item.product.is_active %}opacity-50{% endif %}">
                             </div>
                             <div>
                                 <a href="{% url 'products:product_details' item.product.id %}" 
-                                   class="product-name text-decoration-none">
+                                   class="product-name text-decoration-none {% if not item.product.is_active %}text-muted{% endif %}">
                                     {{ item.product.name }}
                                 </a>
+                                {% if not item.product.is_active %}
+                                <div class="unavailable-message mt-1">
+                                    This product is no longer available
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </td>
-                    <td class="price-text">Rs. {{ item.product.price }}</td>
-                    <td class="price-text">Rs. {{ item.total_price }}</td>
+                    <td class="price-text {% if not item.product.is_active %}text-muted{% endif %}">
+                        Rs. {{ item.product.price }}
+                    </td>
+                    <td class="price-text {% if not item.product.is_active %}text-muted{% endif %}">
+                        Rs. {{ item.total_price }}
+                    </td>
                     <td>
                         <button class="btn btn-outline-danger btn-sm remove-from-cart remove-btn" 
                                 data-item-id="{{ item.id }}"
@@ -203,13 +251,15 @@
                 </tr>
                 <tr>
                     <td colspan="4" class="text-end pt-3">
-                        <a href="" 
+                        <a href="{% url 'user_dashboard' %}" 
                            class="btn btn-outline-secondary continue-shopping me-3">
                             <i class="fas fa-chevron-left me-2"></i>Continue Shopping
                         </a>
-                        <a href="" class="btn btn-checkout">
-                            Proceed to Checkout <i class="fas fa-arrow-right ms-2"></i>
+                        <a href="{% url 'products:checkout' %}" 
+                        class="btn btn-checkout {% if has_unavailable %}disabled{% endif %}">
+                        Proceed to Checkout <i class="fas fa-arrow-right ms-2"></i>
                         </a>
+
                     </td>
                 </tr>
             </tfoot>
@@ -222,7 +272,7 @@
         </div>
         <h3 class="text-muted mb-3">Your Cart is Empty</h3>
         <p class="text-muted mb-4">You haven't added any items to your cart yet.</p>
-        <a href="" class="btn btn-primary px-4">
+        <a href="{% url 'user_dashboard' %}" class="btn btn-primary px-4">
             <i class="fas fa-store me-2"></i>Start Shopping
         </a>
     </div>
@@ -259,15 +309,22 @@
                 })
                 .then(data => {
                     if (data.status === 'success') {
-                        // Optional: Update cart count in header if you have one
-                        if (typeof updateCartCount === 'function') {
-                            updateCartCount(data.cart_count);
-                        }
+                        // Update cart count in header if you have one
+                        const cartCountElements = document.querySelectorAll('.cart-count');
+                        cartCountElements.forEach(el => {
+                            el.textContent = data.cart_count;
+                            if (data.cart_count == 0) {
+                                el.classList.add('d-none');
+                            }
+                        });
+                        
                         // Remove the row after animation completes
                         setTimeout(() => {
                             row.remove();
-                            // Update the grand total if needed
-                            location.reload(); // Or implement dynamic total update
+                            // Reload if no items left or update total dynamically
+                            if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
+                                location.reload();
+                            }
                         }, 300);
                     } else {
                         // Show error message
@@ -287,6 +344,41 @@
             }
         });
     });
-    </script>
+
+    // Auto-remove unavailable products on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const unavailableItems = document.querySelectorAll('.unavailable-product');
+        
+        if (unavailableItems.length > 0) {
+            // Show confirmation message
+            if (confirm('Some products in your cart are no longer available. Would you like to remove them now?')) {
+                // Remove all unavailable items
+                unavailableItems.forEach(item => {
+                    const itemId = item.querySelector('.remove-from-cart').dataset.itemId;
+                    
+                    fetch(`/products/cart/remove/${itemId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            item.remove();
+                            // Reload if no items left
+                            if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
+                                location.reload();
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    });
+</script>
 
 {% endblock %}

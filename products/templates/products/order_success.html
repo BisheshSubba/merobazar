@@ -1,0 +1,6 @@
+<div class="container mt-4">
+    <h2>Order Placed Successfully!</h2>
+    <p>Your order ID is <strong>#{{ order.id }}</strong></p>
+    <p>Total Paid: Rs. {{ order.total_price }}</p>
+    <a href="{% url 'user_dashboard' %}" class="btn btn-primary">Continue Shopping</a>
+</div>

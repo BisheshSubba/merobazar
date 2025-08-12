@@ -485,6 +485,8 @@
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2"></i>Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'my_orders' %}"><i class="fas fa-user-circle me-2"></i>Orders</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                                 </ul>
                             </div>
@@ -530,7 +532,7 @@
                 {% endif %}
                 
                 {% block content %}
-                <!-- Content will be inserted here by child templates -->
+                
                 {% endblock %}
             </div>
         </div>
@@ -547,7 +549,6 @@
                         <a href="#"><i class="fab fa-facebook"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4 mb-md-0">
@@ -555,7 +556,6 @@
                     <div class="footer-links">
                         <a href="{% url 'user_dashboard' %}">Home</a>
                         <a href="{% url 'products:create_product' %}">Sell</a>
-                        <a href="#">Categories</a>
                         <a href="#">About Us</a>
                     </div>
                 </div>
@@ -565,19 +565,10 @@
                         <a href="#">Contact Us</a>
                         <a href="#">FAQs</a>
                         <a href="#">Shipping Policy</a>
-                        <a href="#">Return Policy</a>
+        
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <h5 class="mb-3">Stay Updated</h5>
-                    <p>Subscribe to our newsletter for the latest products and offers.</p>
-                    <form class="mt-3">
-                        <div class="input-group">
-                            <input type="email" class="form-control" placeholder="Your email">
-                            <button class="btn btn-primary" type="submit">Subscribe</button>
-                        </div>
-                    </form>
-                </div>
+            
             </div>
             <hr class="my-4 bg-light">
             <div class="row">

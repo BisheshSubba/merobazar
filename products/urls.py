@@ -12,7 +12,9 @@ urlpatterns = [
     path('get-subsubcategories/', views.get_subsubcategories, name='get_subsubcategories'),
     path('create/', views.create_product, name='create_product'),
     path('product/<int:pk>/update/', views.update_product, name='update_product'),
+    path('delete/<int:pk>/', views.delete_product, name='delete_product'),
     path('product/<int:pk>/', views.product_details, name='product_details'),
+    path('mark_as_sold/<int:product_id>/', views.mark_as_sold, name='mark_as_sold'),
     path('wishlist/toggle/<int:product_id>/', views.toggle_wishlist, name='toggle_wishlist'),
     path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('wishlist/check/<int:product_id>/', views.check_wishlist, name='check_wishlist'),
@@ -23,4 +25,7 @@ urlpatterns = [
     path('cart/remove/<int:item_id>/', views.remove_cart_item, name='remove_cart_item'),
     path('wishlist/count/', views.wishlist_count, name='wishlist_count'),
     path('cart/count/', views.cart_count, name='cart_count'),
+    path('checkout/', views.checkout_view, name='checkout'),
+    path('order/success/<int:order_id>/', views.order_success, name='order_success'),
+    path('order/<int:order_id>/cancel/', views.cancel_order_view, name='cancel_order'),
 ]

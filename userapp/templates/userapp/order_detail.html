@@ -1,0 +1,46 @@
+{% extends 'userapp/base.html' %}
+{% block title %}Order #{{ order.id }} Details - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2>Order #{{ order.id }} Details</h2>
+    <p><strong>Placed on:</strong> {{ order.created_at|date:"M d, Y H:i" }}</p>
+    <p><strong>Status:</strong> <span class="badge bg-info text-dark">{{ order.status|title }}</span></p>
+    <p><strong>Total Price:</strong> Rs. {{ order.total_price }}</p>
+
+    {% if order.status != 'cancelled' %}
+    <form method="POST" action="{% url 'products:cancel_order' order.id %}" onsubmit="return confirm('Are you sure you want to cancel this order?');" class="mb-4">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Cancel Order</button>
+    </form>
+    {% else %}
+    <p class="text-danger">This order has been cancelled.</p>
+    {% endif %}
+
+    <h4 class="mt-4">Items</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Seller</th>
+                <th>Price (Rs.)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td>
+                    <a href="{% url 'products:product_details' item.product.id %}">
+                        {{ item.product.name }}
+                    </a>
+                </td>
+                <td>{{ item.seller.username }}</td>
+                <td>{{ item.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'my_orders' %}" class="btn btn-secondary mt-3">Back to My Orders</a>
+</div>
+{% endblock %}
