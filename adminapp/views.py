@@ -1,15 +1,12 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth import get_user_model
-from products.models import Category, SubCategory, SubSubCategory, Attribute, Product, ProductAttribute, ProductImage
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model, authenticate, login, logout
+from decimal import Decimal
+from products.models import Category, SubCategory, SubSubCategory, Product, ProductImage
 from .forms import (
-    CategoryForm, SubCategoryForm, SubSubCategoryForm, 
-    AttributeForm, AttributeEditForm
+    CategoryForm, SubCategoryForm, SubSubCategoryForm
 )
-from django.contrib.auth import authenticate, login
-from django.contrib.auth import logout
 User = get_user_model()
 
 def admin_login(request):
@@ -28,6 +25,7 @@ def admin_login(request):
             messages.error(request, "Invalid credentials or not an admin account.", extra_tags='admin')
     
     return render(request, 'adminapp/admin_login.html')
+
 def admin_logout(request):
     if request.user.is_authenticated:
         logout(request)
@@ -45,7 +43,6 @@ def admin_required(view_func):
 
 @admin_required
 def admin_dashboard(request):
-    # Get counts from database
     category_count = Category.objects.count()
     subcategory_count = SubCategory.objects.count()
     
@@ -54,13 +51,13 @@ def admin_dashboard(request):
         'subcategory_count': subcategory_count,
     }
     return render(request, 'adminapp/dashboard.html', context)
+
 @admin_required
 def manage_users(request):
     users = User.objects.filter(role='user').order_by('-date_joined')
     return render(request, 'adminapp/manage_users.html', {
         'users': users
     })
-
 
 def toggle_user_status(request, pk):
     user = get_object_or_404(User, pk=pk)
@@ -76,7 +73,6 @@ def toggle_user_status(request, pk):
         messages.success(request, f'User {user.username} has been {status}.', extra_tags='admin')
     
     return redirect('manage_users')
-
 
 def delete_user(request, pk):
     user = get_object_or_404(User, pk=pk)
@@ -96,6 +92,7 @@ def delete_user(request, pk):
         'object': user,
         'title': 'Confirm Delete User'
     })
+
 @admin_required
 def manage_categories(request):
     categories = Category.objects.prefetch_related(
@@ -191,54 +188,15 @@ def edit_subsubcategory(request, pk):
         'form': form,
         'title': 'Edit Sub-subcategory'
     })
-def add_attribute(request):
-    if request.method == 'POST':
-        form = AttributeForm(request.POST)
-        if form.is_valid():
-            attribute = form.save(commit=False)
 
-            # Attach object_id manually if needed
-            object_id = form.cleaned_data.get("object_id")
-            if object_id:
-                attribute.object_id = object_id
-
-            attribute.save()
-
-            # Redirect — you can change 'manage_categories' to whatever fits
-            return redirect('manage_categories')
-
-    else:
-        # For GET, get object_id from query param and pass it to form
-        object_id = request.GET.get("object_id")
-        form = AttributeForm(initial={'object_id': object_id})
-
-    return render(request, 'adminapp/attribute_form.html', {
-        'form': form,
-        'title': 'Add Attribute',
-    })
-def edit_attribute(request, pk):
-    attribute = get_object_or_404(Attribute, pk=pk)
-    if request.method == 'POST':
-        form = AttributeEditForm(request.POST, instance=attribute)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Attribute updated successfully!')
-            return redirect('manage_categories')
-    else:
-        form = AttributeEditForm(instance=attribute)
-    return render(request, 'adminapp/attribute_form.html', {
-        'form': form,
-        'title': 'Edit Attribute'
-    })
 @admin_required
 def manage_products(request):
     products = Product.objects.select_related(
         'category', 'subcategory', 'subsubcategory'
     ).prefetch_related(
-        'attributes', 'images'
+        'images'  # removed 'attributes'
     ).all().order_by('-created_at')
 
-    # Optional filtering/search functionality
     category_id = request.GET.get('category')
     search_query = request.GET.get('q')
     
@@ -262,7 +220,7 @@ def product_detail_admin(request, pk):
         Product.objects.select_related(
             'category', 'subcategory', 'subsubcategory'
         ).prefetch_related(
-            'attributes', 'images'
+            'images'  # removed 'attributes'
         ),
         pk=pk
     )

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Product,Category,SubCategory,SubSubCategory, ProductImage, ProductAttribute
+from .models import Product,Category,SubCategory,SubSubCategory
 
 # STEP 1: Basic Info + Images
 class ProductBasicInfoForm(forms.ModelForm):
@@ -72,20 +72,6 @@ class ProductCategoryForm(forms.Form):
                 self.add_error('subsubcategory', "Selected sub-subcategory doesn't belong to the subcategory")
         
         return cleaned_data
-# STEP 3: Attributes (dynamic based on category)
-class ProductAttributeForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        attributes = kwargs.pop('attributes', [])
-        super().__init__(*args, **kwargs)
-        
-        for attr in attributes:
-            field_name = f'attribute_{attr.id}'
-            if attr.data_type == 'text':
-                self.fields[field_name] = forms.CharField(label=attr.name)
-            elif attr.data_type == 'number':
-                self.fields[field_name] = forms.IntegerField(label=attr.name)
-            # Add other data types as needed
-
 # STEP 4: Final Details
 class ProductFinalDetailsForm(forms.ModelForm):
     class Meta:
