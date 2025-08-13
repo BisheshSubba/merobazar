@@ -56,11 +56,11 @@ This allows buyers to complete transactions seamlessly inside the platform.
 ## 📂 Project Structure
 merobazar/
 ├── adminapp/ # Admin side functionality
----
+<br>
 ├── products/ # Product related functionality
----
+<br>
 ├── userapp/ # User side functionality
----
+<br>
 ├── templates/ # HTML templates
----
+<br>
 └── Media/ # images for the system
