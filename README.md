@@ -54,7 +54,7 @@ This allows buyers to complete transactions seamlessly inside the platform.
 ---
 
 ## 📂 Project Structure
-merobazar/
+merobazar/<br>
 ├── adminapp/ # Admin side functionality
 <br>
 ├── products/ # Product related functionality
