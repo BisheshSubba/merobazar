@@ -112,9 +112,8 @@ class Sale(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('unpaid', 'Unpaid'),   
         ('paid', 'Paid'),
-        ('shipped', 'Shipped'),
         ('cancelled', 'Cancelled'),
     ]
 

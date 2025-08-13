@@ -6,7 +6,11 @@ from django.views.decorators.http import require_POST
 from tempfile import mkdtemp
 from django.core.files.storage import FileSystemStorage
 from django.core.files import File
+from decouple import config
 import os
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+import requests
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse
@@ -234,9 +238,37 @@ def render_step4(request, product_data, form=None):
         'total_steps': 3
     })
 
+
 def products_by_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     products_list = Product.objects.filter(category=category, is_active=True)
+    
+    # Filtering logic
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    sort_by = request.GET.get('sort_by', 'newest')  # Default to newest first
+    search_query = request.GET.get('search')
+    
+    if min_price:
+        products_list = products_list.filter(price__gte=min_price)
+    if max_price:
+        products_list = products_list.filter(price__lte=max_price)
+    if search_query:
+        products_list = products_list.filter(
+            Q(name__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Sorting mapping
+    sort_mapping = {
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'newest': '-created_at',
+        'oldest': 'created_at',
+    }
+    order_by = sort_mapping.get(sort_by, '-created_at')
+    products_list = products_list.order_by(order_by)
+    
     paginator = Paginator(products_list, 12)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
@@ -247,13 +279,46 @@ def products_by_category(request, category_id):
         'products': products,
         'subcategories': category.subcategories.all(),
         'subcategory_url_name': 'products:products_by_subcategory',
-        'breadcrumbs': []
+        'breadcrumbs': [],
+        'current_sort': order_by,  # Actual field name for display
+        'applied_filters': {
+            'min_price': min_price,
+            'max_price': max_price,
+            'search': search_query,
+        }
     }
     return render(request, 'products/category_view.html', context)
 
 def products_by_subcategory(request, subcategory_id):
     subcategory = get_object_or_404(SubCategory, id=subcategory_id)
     products_list = Product.objects.filter(subcategory=subcategory, is_active=True)
+    
+    # Filtering logic
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    sort_by = request.GET.get('sort_by', 'newest')
+    search_query = request.GET.get('search')
+    
+    if min_price:
+        products_list = products_list.filter(price__gte=min_price)
+    if max_price:
+        products_list = products_list.filter(price__lte=max_price)
+    if search_query:
+        products_list = products_list.filter(
+            Q(name__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Sorting mapping
+    sort_mapping = {
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'newest': '-created_at',
+        'oldest': 'created_at',
+    }
+    order_by = sort_mapping.get(sort_by, '-created_at')
+    products_list = products_list.order_by(order_by)
+    
     paginator = Paginator(products_list, 12)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
@@ -266,13 +331,46 @@ def products_by_subcategory(request, subcategory_id):
         'subcategory_url_name': 'products:products_by_subsubcategory',
         'breadcrumbs': [
             {'name': subcategory.category.name, 'url': reverse('products:products_by_category', args=[subcategory.category.id])}
-        ]
+        ],
+        'current_sort': order_by,
+        'applied_filters': {
+            'min_price': min_price,
+            'max_price': max_price,
+            'search': search_query,
+        }
     }
     return render(request, 'products/category_view.html', context)
 
 def products_by_subsubcategory(request, subsubcategory_id):
     subsubcategory = get_object_or_404(SubSubCategory, id=subsubcategory_id)
     products_list = Product.objects.filter(subsubcategory=subsubcategory, is_active=True)
+    
+    # Filtering logic
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    sort_by = request.GET.get('sort_by', 'newest')
+    search_query = request.GET.get('search')
+    
+    if min_price:
+        products_list = products_list.filter(price__gte=min_price)
+    if max_price:
+        products_list = products_list.filter(price__lte=max_price)
+    if search_query:
+        products_list = products_list.filter(
+            Q(name__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Sorting mapping
+    sort_mapping = {
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'newest': '-created_at',
+        'oldest': 'created_at',
+    }
+    order_by = sort_mapping.get(sort_by, '-created_at')
+    products_list = products_list.order_by(order_by)
+    
     paginator = Paginator(products_list, 12)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
@@ -281,11 +379,17 @@ def products_by_subsubcategory(request, subsubcategory_id):
         'page_title': subsubcategory.name,
         'current_category': subsubcategory,
         'products': products,
-        'subcategories': None,  # No further subcategories
+        'subcategories': None,
         'breadcrumbs': [
             {'name': subsubcategory.subcategory.category.name, 'url': reverse('products:products_by_category', args=[subsubcategory.subcategory.category.id])},
             {'name': subsubcategory.subcategory.name, 'url': reverse('products:products_by_subcategory', args=[subsubcategory.subcategory.id])}
-        ]
+        ],
+        'current_sort': order_by,
+        'applied_filters': {
+            'min_price': min_price,
+            'max_price': max_price,
+            'search': search_query,
+        }
     }
     return render(request, 'products/category_view.html', context)
 def get_category_from_subcategory(request):
@@ -516,7 +620,7 @@ def checkout_view(request):
     order = Order.objects.create(
         user=request.user,
         total_price=total_price,
-        status='pending'
+        status='unpaid'
     )
 
     for item in cart_items:
@@ -546,4 +650,103 @@ def cancel_order_view(request, order_id):
         messages.success(request, f'Order #{order.id} has been cancelled.')
     else:
         messages.info(request, f'Order #{order.id} is already cancelled.')
+    return redirect('my_orders')
+
+
+
+
+@login_required
+def initiate_khalti_payment(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # Compose a string of product names in the order
+    product_names = ", ".join(item.product.name for item in order.items.all())
+    if not product_names:
+        product_names = f"Order #{order.id}"
+
+    post_fields = {
+        "return_url": request.build_absolute_uri('/products/payment-response/'),  # your callback URL
+        "website_url": request.build_absolute_uri('/'),
+        "amount": int(order.total_price * 100),  # amount in paisa
+        "purchase_order_id": str(order.id),
+        "purchase_order_name": product_names,
+        "customer_info": {
+            "name": request.user.username,
+            "email": request.user.email,
+            "phone": getattr(request.user, 'phone', 'N/A'),
+        }
+    }
+
+    headers = {
+        'Authorization': f"key {config('KHALTI_SECRET_KEY')}",
+        'Content-Type': 'application/json',
+    }
+
+    response = requests.post('https://a.khalti.com/api/v2/epayment/initiate/', json=post_fields, headers=headers)
+    data = response.json()
+
+    if response.status_code == 200 and 'payment_url' in data:
+        return redirect(data['payment_url'])
+    else:
+        messages.error(request, "Payment initiation failed. Please try again.")
+        return redirect('products:order_success', order_id=order.id)
+    
+from django.shortcuts import get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from decouple import config
+import requests
+from .models import Sale, Order, OrderItem, Product
+
+@csrf_exempt
+@login_required
+def payment_response(request):
+    pidx = request.GET.get('pidx')
+    purchase_order_id = request.GET.get('purchase_order_id')
+
+    if not pidx or not purchase_order_id:
+        messages.error(request, "Invalid payment response.")
+        return redirect('my_orders')
+
+    order = Order.objects.filter(id=purchase_order_id, user=request.user, status='unpaid').first()
+
+    if not order:
+        messages.error(request, "No unpaid order found.")
+        return redirect('my_orders')
+
+    headers = {
+        'Authorization': f"key {config('KHALTI_SECRET_KEY')}",
+        'Content-Type': 'application/json',
+    }
+
+    response = requests.post('https://a.khalti.com/api/v2/epayment/lookup/', json={"pidx": pidx}, headers=headers)
+    data = response.json()
+
+    if response.status_code == 200 and data.get('status') == 'Completed':
+        # Mark order as paid
+        order.status = 'paid'
+        order.save()
+
+        # For each item in the order:
+        for item in order.items.all():
+            # Mark the product as inactive (sold)
+            product = item.product
+            product.is_active = False
+            product.save()
+
+            # Create Sale record
+            Sale.objects.create(
+                product=product,
+                buyer=order.user,
+                sold_price=item.price,
+                notes="Sold via Khalti payment"
+            )
+
+        messages.success(request, f"Payment successful. Order #{order.id} confirmed.")
+    else:
+        order.status = 'cancelled'
+        order.save()
+        messages.error(request, f"Payment failed or cancelled. Order #{order.id} cancelled.")
+
     return redirect('my_orders')

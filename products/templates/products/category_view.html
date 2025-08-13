@@ -22,6 +22,89 @@
         <span class="badge bg-primary">{{ products.paginator.count }} products</span>
     </div>
     
+    <!-- Filter and Sort Section -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row g-3">
+                    <!-- Price Range Filter -->
+                    <div class="col-md-6">
+                        <div class="row g-2 align-items-center">
+                            <div class="col">
+                                <input type="number" class="form-control" name="min_price" 
+                                       placeholder="Min price" value="{{ applied_filters.min_price|default:'' }}"
+                                       min="0" step="1">
+                            </div>
+                            <div class="col-auto">
+                                <span>to</span>
+                            </div>
+                            <div class="col">
+                                <input type="number" class="form-control" name="max_price" 
+                                       placeholder="Max price" value="{{ applied_filters.max_price|default:'' }}"
+                                       min="0" step="1">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Apply</button>
+                            </div>
+                        </div>
+                        <div class="text-danger small mt-1" id="price-error"></div>
+                    </div>
+                    
+                    <!-- Sort Dropdown -->
+                    <div class="col-md-6">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" 
+                                    id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Sort by: 
+                                {% if current_sort == 'price' %}Price (Low to High)
+                                {% elif current_sort == '-price' %}Price (High to Low)
+                                {% elif current_sort == 'created_at' %}Oldest First
+                                {% else %}Newest First
+                                {% endif %}
+                            </button>
+                            <ul class="dropdown-menu w-100" aria-labelledby="sortDropdown">
+                                <li><button type="submit" class="dropdown-item" name="sort_by" value="newest">Newest First</button></li>
+                                <li><button type="submit" class="dropdown-item" name="sort_by" value="oldest">Oldest First</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button type="submit" class="dropdown-item" name="sort_by" value="price_asc">Price (Low to High)</button></li>
+                                <li><button type="submit" class="dropdown-item" name="sort_by" value="price_desc">Price (High to Low)</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden fields for pagination -->
+                <input type="hidden" name="page" value="1">
+            </form>
+            
+            <!-- Active Filters -->
+            {% if applied_filters.min_price or applied_filters.max_price %}
+            <div class="mt-3">
+                <small class="text-muted">Active filters:</small>
+                {% if applied_filters.min_price %}
+                <span class="badge bg-secondary me-1">
+                    Min: Rs. {{ applied_filters.min_price }}
+                    <a href="?{% if applied_filters.max_price %}max_price={{ applied_filters.max_price }}&{% endif %}sort_by={{ current_sort }}" class="text-white ms-1">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+                {% if applied_filters.max_price %}
+                <span class="badge bg-secondary me-1">
+                    Max: Rs. {{ applied_filters.max_price }}
+                    <a href="?{% if applied_filters.min_price %}min_price={{ applied_filters.min_price }}&{% endif %}sort_by={{ current_sort }}" class="text-white ms-1">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+                <a href="?sort_by={{ current_sort }}" class="badge bg-danger text-decoration-none">
+                    Clear all filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
     {% if subcategories %}
     <div class="mb-4">
         <h5 class="mb-3">Subcategories</h5>
@@ -79,7 +162,8 @@
         {% empty %}
         <div class="col-12">
             <div class="alert alert-info">
-                No products found in this category.
+                No products found matching your criteria.
+                <a href="?sort_by={{ current_sort }}" class="alert-link">Clear filters</a>
             </div>
         </div>
         {% endfor %}
@@ -90,7 +174,7 @@
         <ul class="pagination justify-content-center">
             {% if products.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Previous">
+                <a class="page-link" href="?page={{ products.previous_page_number }}{% if applied_filters.min_price %}&min_price={{ applied_filters.min_price }}{% endif %}{% if applied_filters.max_price %}&max_price={{ applied_filters.max_price }}{% endif %}{% if current_sort %}&sort_by={{ current_sort }}{% endif %}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
@@ -104,13 +188,13 @@
             {% if products.number == i %}
             <li class="page-item active"><span class="page-link">{{ i }}</span></li>
             {% else %}
-            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if applied_filters.min_price %}&min_price={{ applied_filters.min_price }}{% endif %}{% if applied_filters.max_price %}&max_price={{ applied_filters.max_price }}{% endif %}{% if current_sort %}&sort_by={{ current_sort }}{% endif %}">{{ i }}</a></li>
             {% endif %}
             {% endfor %}
             
             {% if products.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">
+                <a class="page-link" href="?page={{ products.next_page_number }}{% if applied_filters.min_price %}&min_price={{ applied_filters.min_price }}{% endif %}{% if applied_filters.max_price %}&max_price={{ applied_filters.max_price }}{% endif %}{% if current_sort %}&sort_by={{ current_sort }}{% endif %}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
@@ -342,6 +426,62 @@
             toastEl.addEventListener('hidden.bs.toast', function() {
                 toastEl.remove();
             });
+        }
+
+        // Price range validation
+        const filterForm = document.getElementById('filter-form');
+        const minPriceInput = document.querySelector('input[name="min_price"]');
+        const maxPriceInput = document.querySelector('input[name="max_price"]');
+        const priceError = document.getElementById('price-error');
+
+        filterForm.addEventListener('submit', function(e) {
+            const minPrice = parseFloat(minPriceInput.value) || 0;
+            const maxPrice = parseFloat(maxPriceInput.value) || 0;
+            
+            // Reset error message
+            priceError.textContent = '';
+            
+            // Validate price range
+            if (minPrice && maxPrice && minPrice > maxPrice) {
+                e.preventDefault();
+                priceError.textContent = 'Minimum price cannot be greater than maximum price';
+                return false;
+            }
+            
+            if (minPrice < 0 || maxPrice < 0) {
+                e.preventDefault();
+                priceError.textContent = 'Price cannot be negative';
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Real-time validation for price inputs
+        minPriceInput.addEventListener('input', function() {
+            validatePriceInputs();
+        });
+        
+        maxPriceInput.addEventListener('input', function() {
+            validatePriceInputs();
+        });
+        
+        function validatePriceInputs() {
+            const minPrice = parseFloat(minPriceInput.value) || 0;
+            const maxPrice = parseFloat(maxPriceInput.value) || 0;
+            
+            if (minPrice < 0 || maxPrice < 0) {
+                priceError.textContent = 'Price cannot be negative';
+                return false;
+            }
+            
+            if (minPrice && maxPrice && minPrice > maxPrice) {
+                priceError.textContent = 'Minimum price cannot be greater than maximum price';
+                return false;
+            }
+            
+            priceError.textContent = '';
+            return true;
         }
     });
 </script>

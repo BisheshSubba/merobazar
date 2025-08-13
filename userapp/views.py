@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from products.models import Product, Category, SubCategory, Order
+from products.models import Product, Category, SubCategory, Order, OrderItem
 
 User = get_user_model()
 
@@ -91,8 +91,42 @@ def profile_view(request):
 
 @login_required
 def my_orders_view(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created_at').prefetch_related('items__product')
-    return render(request, 'userapp/my_orders.html', {'orders': orders})
+    # Orders made by the user (as buyer)
+    user_orders_list = Order.objects.filter(user=request.user).order_by('-created_at').prefetch_related('items__product')
+    paginator = Paginator(user_orders_list, 5)  # 5 orders per page
+    page_number = request.GET.get('page')
+    user_orders = paginator.get_page(page_number)
+
+    context = {
+        'user_orders': user_orders,
+    }
+    return render(request, 'userapp/my_orders.html', context)
+
+@login_required
+def orders_received_view(request):
+    # Orders received by the user (as seller)
+    received_items = OrderItem.objects.filter(seller=request.user).select_related('order', 'product')
+    
+    # Group received items by order
+    received_orders_dict = {}
+    for item in received_items:
+        if item.order.id not in received_orders_dict:
+            received_orders_dict[item.order.id] = {
+                'order': item.order,
+                'items': []
+            }
+        received_orders_dict[item.order.id]['items'].append(item)
+    
+    received_orders_list = list(received_orders_dict.values())
+    received_paginator = Paginator(received_orders_list, 5)  # 5 orders per page
+    page_number = request.GET.get('page')
+    received_orders = received_paginator.get_page(page_number)
+
+    context = {
+        'received_orders': received_orders,
+    }
+    return render(request, 'userapp/orders_received.html', context)
+
 
 @login_required
 def order_detail_view(request, order_id):
@@ -111,6 +145,9 @@ def user_products_view(request):
 
 def search_products(request):
     query = request.GET.get('q', '')
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    sort_by = request.GET.get('sort_by', 'newest')  # Default to newest first
     page_number = request.GET.get('page', 1)
     
     if query:
@@ -120,9 +157,25 @@ def search_products(request):
             Q(description__icontains=query) |
             Q(brand__icontains=query),
             is_active=True
-        ).distinct().order_by('-created_at')
+        ).distinct()
     else:
         products_list = Product.objects.none()
+    
+    # Apply price filters if provided
+    if min_price:
+        products_list = products_list.filter(price__gte=min_price)
+    if max_price:
+        products_list = products_list.filter(price__lte=max_price)
+    
+    # Sorting mapping
+    sort_mapping = {
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'newest': '-created_at',
+        'oldest': 'created_at',
+    }
+    order_by = sort_mapping.get(sort_by, '-created_at')
+    products_list = products_list.order_by(order_by)
     
     # Pagination with 12 items per page
     paginator = Paginator(products_list, 12)
@@ -131,6 +184,11 @@ def search_products(request):
     context = {
         'products': products,
         'query': query,
+        'current_sort': order_by,
+        'applied_filters': {
+            'min_price': min_price,
+            'max_price': max_price,
+        },
         'categories': Category.objects.prefetch_related('subcategories').all(),
     }
     return render(request, 'userapp/search_results.html', context)

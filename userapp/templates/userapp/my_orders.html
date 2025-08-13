@@ -2,32 +2,104 @@
 {% block title %}My Orders - MeroBazar{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h2 class="mb-4">My Orders</h2>
-
-    {% if orders %}
-    <div class="list-group">
-        {% for order in orders %}
-        <a href="{% url 'order_detail' order.id %}" class="list-group-item list-group-item-action mb-3">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <strong>Order #{{ order.id }}</strong> - {{ order.created_at|date:"M d, Y H:i" }}
-                </div>
-                <div>
-                    <span class="badge bg-info text-dark">{{ order.status|title }}</span>
-                </div>
-            </div>
-            <div>
-                Total Price: Rs. {{ order.total_price }}
-            </div>
-            <small class="text-muted">
-                Items: {{ order.items.count }}
-            </small>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="fw-bold text-primary">My Orders</h2>
+        <a href="{% url 'orders_received' %}" class="btn btn-outline-primary">
+            <i class="bi bi-box-seam me-2"></i>View Seller Orders
         </a>
-        {% endfor %}
     </div>
+
+    {% if user_orders %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Order #</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Items</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in user_orders %}
+                        <tr>
+                            <td class="fw-bold">#{{ order.id }}</td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>{{ order.items.count }}</td>
+                            <td class="fw-bold">Rs. {{ order.total_price }}</td>
+                            <td>
+                                <span class="badge rounded-pill 
+                                    {% if order.status|lower == 'paid' %}bg-success
+                                    {% elif order.status|lower == 'unpaid' %}bg-warning text-dark
+                                    {% else %}bg-danger
+                                    {% endif %}">
+                                    {{ order.status|title }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                    View <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if user_orders.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if user_orders.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ user_orders.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+            </li>
+            {% endif %}
+
+            {% for num in user_orders.paginator.page_range %}
+            <li class="page-item {% if num == user_orders.number %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+
+            {% if user_orders.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ user_orders.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
     {% else %}
-    <p>You have not placed any orders yet.</p>
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-cart-x display-4 text-muted"></i>
+        </div>
+        <h5 class="text-muted">No orders yet</h5>
+        <p class="text-muted">Your orders will appear here once you make a purchase</p>
+        <a href="{% url 'home' %}" class="btn btn-primary mt-3">Continue Shopping</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

@@ -10,6 +10,7 @@ urlpatterns = [
     path('profile/products/', views.user_products_view, name='user_products'),
     path('search/', views.search_products, name='search_products'),
     path('my-orders/', views.my_orders_view, name='my_orders'),
+    path('orders-received/', views.orders_received_view, name='orders_received'),
     path('order/<int:order_id>/', views.order_detail_view, name='order_detail'),
 ]
  

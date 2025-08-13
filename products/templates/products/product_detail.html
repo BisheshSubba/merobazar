@@ -22,10 +22,14 @@
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
+                    <!-- Main Image Container -->
                     <div class="main-image-container mb-3 border rounded overflow-hidden" style="height: 400px; background-color: #f8f9fa;">
                         {% with product.images.first as main_image %}
                             {% if main_image %}
-                            <img src="{{ main_image.image.url }}" class="img-fluid h-100 w-100 object-fit-cover main-product-img" alt="{{ product.name }}">
+                            <img src="{{ main_image.image.url }}" 
+                                 class="img-fluid h-100 w-100 object-fit-cover main-product-img cursor-zoom" 
+                                 alt="{{ product.name }}"
+                                 onclick="openImageModal('{{ main_image.image.url }}')">
                             {% else %}
                             <div class="h-100 w-100 d-flex align-items-center justify-content-center">
                                 <i class="fas fa-image fa-4x text-muted"></i>
@@ -34,6 +38,7 @@
                         {% endwith %}
                     </div>
                     
+                    <!-- Thumbnails -->
                     {% if product.images.count > 1 %}
                     <div class="thumbnail-scroller">
                         <div class="d-flex flex-nowrap gap-2 pb-2 overflow-auto">
@@ -42,7 +47,7 @@
                                 <img src="{{ image.image.url }}" 
                                      class="img-fluid h-100 w-100 object-fit-cover border rounded cursor-pointer{% if forloop.first %} active-thumbnail{% endif %}" 
                                      alt="{{ product.name }} thumbnail"
-                                     onclick="changeMainImage('{{ image.image.url }}', this)">
+                                     onclick="changeMainImage(this, '{{ image.image.url }}')">
                             </div>
                             {% endfor %}
                         </div>
@@ -172,7 +177,6 @@
                                         </span>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -382,19 +386,103 @@
         </div>
     </div>
 
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid" style="max-height: 80vh;">
+                    <div class="d-flex justify-content-between mt-3">
+                        <button class="btn btn-dark rounded-circle" onclick="navigateImages(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-dark rounded-circle" onclick="navigateImages(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast container for notifications -->
     <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
 </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Change main image when thumbnail is clicked
-        function changeMainImage(src, element) {
-            document.querySelector('.main-product-img').src = src;
+        function changeMainImage(element, fullSrc) {
+            const mainImg = document.querySelector('.main-product-img');
+            const thumbnailSrc = element.src;
+            
+            // Update main image
+            mainImg.src = thumbnailSrc;
+            mainImg.setAttribute('onclick', `openImageModal('${fullSrc}')`);
+            
+            // Update active thumbnail
             document.querySelectorAll('.thumbnail-item img').forEach(img => {
                 img.classList.remove('active-thumbnail');
             });
             element.classList.add('active-thumbnail');
+        }
+
+        // Open image in modal
+        function openImageModal(src) {
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            document.getElementById('modalImage').src = src;
+            modal.show();
+        }
+
+        // Navigate through images
+        function navigateImages(direction) {
+            const thumbnails = document.querySelectorAll('.thumbnail-item img');
+            const currentSrc = document.getElementById('modalImage').src;
+            let currentIndex = -1;
+            
+            // Find current image index
+            thumbnails.forEach((img, index) => {
+                const imgFullSrc = img.getAttribute('onclick').match(/openImageModal\('([^']+)'\)/)[1];
+                if (imgFullSrc === currentSrc) {
+                    currentIndex = index;
+                }
+            });
+            
+            if (currentIndex >= 0) {
+                let newIndex = currentIndex + direction;
+                if (newIndex < 0) newIndex = thumbnails.length - 1;
+                if (newIndex >= thumbnails.length) newIndex = 0;
+                
+                const newImg = thumbnails[newIndex];
+                const fullSrc = newImg.getAttribute('onclick').match(/openImageModal\('([^']+)'\)/)[1];
+                
+                // Update modal image
+                document.getElementById('modalImage').src = fullSrc;
+                
+                // Update main view and thumbnails to match
+                changeMainImage(newImg, fullSrc);
+            }
+        }
+
+        // Add keyboard navigation for image modal
+        document.getElementById('imageModal').addEventListener('shown.bs.modal', function() {
+            document.addEventListener('keydown', handleKeyDown);
+        });
+
+        document.getElementById('imageModal').addEventListener('hidden.bs.modal', function() {
+            document.removeEventListener('keydown', handleKeyDown);
+        });
+
+        function handleKeyDown(e) {
+            if (e.key === 'ArrowLeft') {
+                navigateImages(-1);
+            } else if (e.key === 'ArrowRight') {
+                navigateImages(1);
+            } else if (e.key === 'Escape') {
+                bootstrap.Modal.getInstance(document.getElementById('imageModal')).hide();
+            }
         }
 
         // Toast notification function

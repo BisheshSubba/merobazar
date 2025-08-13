@@ -1,0 +1,113 @@
+{% extends 'userapp/base.html' %}
+{% block title %}Orders Received - MeroBazar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="fw-bold text-primary">Orders Received</h2>
+        <a href="{% url 'my_orders' %}" class="btn btn-outline-primary">
+            <i class="bi bi-cart-check me-2"></i>View My Orders
+        </a>
+    </div>
+
+    {% if received_orders %}
+    <div class="row g-4">
+        {% for received in received_orders %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Order #{{ received.order.id }}</h5>
+                        <span class="badge rounded-pill 
+                            {% if received.order.status|lower == 'paid' %}bg-success
+                            {% elif received.order.status|lower == 'unpaid' %}bg-warning text-dark
+                            {% else %}bg-danger
+                            {% endif %}">
+                            {{ received.order.status|title }}
+                        </span>
+                    </div>
+                    <small class="text-muted">{{ received.order.created_at|date:"M d, Y" }}</small>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2">Buyer Info</h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-person me-2 text-muted"></i>
+                            <span>{{ received.order.user.get_full_name|default:received.order.user.username }}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-envelope me-2 text-muted"></i>
+                            <span>{{ received.order.user.email }}</span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-2">Items ({{ received.items|length }})</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for item in received.items %}
+                        <li class="list-group-item border-0 px-0 py-2 d-flex justify-content-between">
+                            <div class="text-truncate" style="max-width: 180px;">
+                                {{ item.product.name }}
+                            </div>
+                            <div class="fw-bold">Rs. {{ item.price }}</div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="card-footer bg-white border-top-0 pt-0 text-end">
+                    <a href="#" class="btn btn-sm btn-outline-primary">
+                        View Details <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if received_orders.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if received_orders.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ received_orders.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+            </li>
+            {% endif %}
+
+            {% for num in received_orders.paginator.page_range %}
+            <li class="page-item {% if num == received_orders.number %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+
+            {% if received_orders.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ received_orders.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-box-seam display-4 text-muted"></i>
+        </div>
+        <h5 class="text-muted">No orders received yet</h5>
+        <p class="text-muted">Orders from buyers will appear here</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
