@@ -28,7 +28,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 
-ALLOWED_HOSTS = ['merobazar-jnrt.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['merobazar-luex.onrender.com', 'localhost', '127.0.0.1']
 
 PORT = os.environ.get('PORT', 8000)
 
