@@ -1,5 +1,12 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.db.models import Avg, Count
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+import json
+from datetime import datetime, timedelta
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -133,3 +140,42 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.price} (Seller: {self.seller.username})"
+
+class UserInteraction(models.Model):
+    INTERACTION_TYPES = [
+        ('view', 'View'),
+        ('click', 'Click'),
+        ('wishlist', 'Wishlist Add'),
+        ('cart', 'Cart Add'),
+        ('purchase', 'Purchase'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    interaction_type = models.CharField(max_length=20, choices=INTERACTION_TYPES)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    weight = models.FloatField(default=1.0)  # Weight for different interaction types
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'product']),
+            models.Index(fields=['timestamp']),
+        ]
+
+class UserSimilarity(models.Model):
+    user1 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='similarities_as_user1')
+    user2 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='similarities_as_user2')
+    similarity_score = models.FloatField()
+    calculated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('user1', 'user2')
+
+class ProductSimilarity(models.Model):
+    product1 = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='similarities_as_product1')
+    product2 = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='similarities_as_product2')
+    similarity_score = models.FloatField()
+    calculated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('product1', 'product2')

@@ -293,29 +293,36 @@
         </div>
     </div>
 
-    <!-- Related Products -->
-    {% if related_products %}
+    <!-- Recommended Products -->
+    {% if recommended_products %}
     <div class="row mt-5">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="mb-0">Similar Products</h3>
-                <a href="{% url 'products:products_by_category' product.category.id %}" class="btn btn-sm btn-outline-primary">
-                    View All <i class="fas fa-arrow-right ms-1"></i>
+                <h3 class="mb-0">
+                    <i class="fas fa-star text-warning me-2"></i>
+                    {% if request.user.is_authenticated %}Recommended For You{% else %}You Might Also Like{% endif %}
+                </h3>
+                {% if request.user.is_authenticated %}
+                <span class="text-muted small">Personalized recommendations based on your activity</span>
+                {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-primary">
+                    Sign in for personalized recommendations <i class="fas fa-arrow-right ms-1"></i>
                 </a>
+                {% endif %}
             </div>
             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
-                {% for related in related_products %}
+                {% for recommended in recommended_products %}
                 <div class="col">
                     <div class="card h-100 product-card border-0 shadow-sm position-relative">
-                        {% if not related.is_active %}
+                        {% if not recommended.is_active %}
                         <div class="sold-overlay">
                             <span class="sold-text">SOLD</span>
                         </div>
                         {% endif %}
-                        <a href="{% url 'products:product_details' related.id %}" class="text-decoration-none text-dark">
-                            {% with related.images.first as first_image %}
+                        <a href="{% url 'products:product_details' recommended.id %}" class="text-decoration-none text-dark">
+                            {% with recommended.images.first as first_image %}
                                 {% if first_image %}
-                                <img src="{{ first_image.image.url }}" class="card-img-top" alt="{{ related.name }}" style="height: 200px; object-fit: contain; background: #f8f9fa;">
+                                <img src="{{ first_image.image.url }}" class="card-img-top" alt="{{ recommended.name }}" style="height: 200px; object-fit: contain; background: #f8f9fa;">
                                 {% else %}
                                 <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                     <i class="fas fa-image fa-3x text-muted"></i>
@@ -323,23 +330,23 @@
                                 {% endif %}
                             {% endwith %}
                             <div class="card-body">
-                                <h5 class="card-title mb-2">{{ related.name|truncatechars:40 }}</h5>
+                                <h5 class="card-title mb-2">{{ recommended.name|truncatechars:40 }}</h5>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="h5 text-primary mb-0">Rs. {{ related.price }}</span>
-                                    {% if related.old_price %}
-                                    <small class="text-muted text-decoration-line-through">Rs. {{ related.old_price }}</small>
+                                    <span class="h5 text-primary mb-0">Rs. {{ recommended.price }}</span>
+                                    {% if recommended.old_price %}
+                                    <small class="text-muted text-decoration-line-through">Rs. {{ recommended.old_price }}</small>
                                     {% endif %}
                                 </div>
                             </div>
                             <div class="card-footer bg-white border-0 pt-0">
                                 <div class="d-flex justify-content-between">
-                                    <button class="btn btn-sm btn-outline-secondary wishlist-btn-sm" data-product-id="{{ related.id }}">
+                                    <button class="btn btn-sm btn-outline-secondary wishlist-btn-sm" data-product-id="{{ recommended.id }}">
                                         <i class="far fa-heart"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-primary add-to-cart-sm" data-product-id="{{ related.id }}" 
-                                            {% if not related.is_active or related.id in cart_product_ids %}disabled{% endif %}>
-                                        <i class="fas fa-{% if related.id in cart_product_ids %}check{% else %}cart-plus{% endif %} me-1"></i>
-                                        {% if related.id in cart_product_ids %}Added{% else %}Add{% endif %}
+                                    <button class="btn btn-sm btn-primary add-to-cart-sm" data-product-id="{{ recommended.id }}" 
+                                            {% if not recommended.is_active or recommended.id in cart_product_ids %}disabled{% endif %}>
+                                        <i class="fas fa-{% if recommended.id in cart_product_ids %}check{% else %}cart-plus{% endif %} me-1"></i>
+                                        {% if recommended.id in cart_product_ids %}Added{% else %}Add{% endif %}
                                     </button>
                                 </div>
                             </div>
@@ -413,6 +420,34 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Track product view for recommendations
+        function trackProductView() {
+            const productId = "{{ product.id }}";
+            
+            fetch('/api/recommendations/track-interaction/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    interaction_type: 'view'
+                }),
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('View tracked for recommendations');
+            })
+            .catch(error => {
+                console.error('Error tracking view:', error);
+            });
+        }
+        
+        // Track view after a short delay to ensure page is loaded
+        setTimeout(trackProductView, 1000);
+
         // Change main image when thumbnail is clicked
         function changeMainImage(element, fullSrc) {
             const mainImg = document.querySelector('.main-product-img');

@@ -15,9 +15,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.db import close_old_connections
-from django.contrib.contenttypes.models import ContentType
-from django.core.files.uploadedfile import SimpleUploadedFile
+from recommendations.utils import HybridRecommender
 from django.db import transaction
 from .models import Category, SubCategory, SubSubCategory, Product, ProductImage, Wishlist, Cart, Order, OrderItem, Sale
 from .forms import ProductBasicInfoForm, ProductCategoryForm, ProductFinalDetailsForm, ProductImageForm, ProductUpdateForm
@@ -411,25 +409,61 @@ def get_subsubcategories(request):
     subsubcategories = SubSubCategory.objects.filter(subcategory_id=subcategory_id).order_by('name')
     data = [{'id': subsub.id, 'name': subsub.name} for subsub in subsubcategories]
     return JsonResponse(data, safe=False)
-
 def product_details(request, pk):
     product = get_object_or_404(Product, pk=pk)
-    related_products = Product.objects.filter(
-        category=product.category
-    ).exclude(id=product.id).order_by('?')[:4]
+    
+    # Get recommendations for the current user
+    recommended_products = []
+    if request.user.is_authenticated:
+        try:
+            recommender = HybridRecommender()
+            recommended_products = recommender.get_hybrid_recommendations(
+                user_id=request.user.id,
+                top_n=8
+            )
+            # If no personalized recommendations, fallback to category-based
+            if not recommended_products:
+                recommended_products = Product.objects.filter(
+                    category=product.category,
+                    is_active=True
+                ).exclude(id=product.id).order_by('?')[:8]
+        except Exception as e:
+            # Fallback to category-based products if recommendation system fails
+            recommended_products = Product.objects.filter(
+                category=product.category,
+                is_active=True
+            ).exclude(id=product.id).order_by('?')[:8]
+    else:
+        # For non-authenticated users, show category-based products
+        recommended_products = Product.objects.filter(
+            category=product.category,
+            is_active=True
+        ).exclude(id=product.id).order_by('?')[:8]
     
     # Get cart product IDs for the current user
     cart_product_ids = []
     if request.user.is_authenticated:
         cart_product_ids = request.user.cart_items.values_list('product_id', flat=True)
     
+    # Track view for recommendations (if user is authenticated)
+    if request.user.is_authenticated:
+        try:
+            from recommendations.models import UserInteraction
+            UserInteraction.objects.create(
+                user=request.user,
+                product=product,
+                interaction_type='view'
+            )
+        except Exception as e:
+            # Silently fail if tracking doesn't work
+            pass
+    
     return render(request, 'products/product_detail.html', {
         'product': product,
-        'related_products': related_products,
+        'recommended_products': recommended_products,
         'cart_product_ids': cart_product_ids,
     })
 
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 
 @login_required
