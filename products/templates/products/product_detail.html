@@ -476,13 +476,15 @@
                     this.innerHTML = '<i class="fas fa-check-circle me-1"></i>Added to Cart';
 
                     // ✅ GA4 Add to Cart event tracking
-                    gtag('event', 'add_to_cart', {
-                        currency: "NPR", // use "USD" if you prefer
-                        value: data.product_price,  // make sure backend sends price
-                        items: [{
-                            item_id: data.product_id, 
-                            item_name: data.product_name, 
-                            quantity: 1
+                    window.dataLayer = window.dataLayer || [];
+                    window.dataLayer.push({
+                        'event': 'add_to_cart',
+                        'currency': "NPR",
+                        'value': data.product_price,
+                        'items': [{
+                            'item_id': data.product_id,
+                            'item_name': data.product_name,
+                            'quantity': 1
                         }]
                     });
 

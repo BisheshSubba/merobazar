@@ -270,13 +270,15 @@
                         });
 
                         // ✅ GA4 Add to Cart event
-                        gtag('event', 'add_to_cart', {
-                            currency: "NPR", // adjust if needed
-                            value: data.product_price, // make sure backend sends price
-                            items: [{
-                                item_id: data.product_id, 
-                                item_name: data.product_name, 
-                                quantity: 1
+                        window.dataLayer = window.dataLayer || [];
+                        window.dataLayer.push({
+                            'event': 'add_to_cart',
+                            'currency': "NPR",
+                            'value': data.product_price,
+                            'items': [{
+                                'item_id': data.product_id,
+                                'item_name': data.product_name,
+                                'quantity': 1
                             }]
                         });
 
