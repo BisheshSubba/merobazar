@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model, authenticate, login, logout
-from decimal import Decimal
-from products.models import Category, SubCategory, SubSubCategory, Product, ProductImage
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models import Count, Sum, Avg, Q
+from products.models import Category, SubCategory, SubSubCategory, Product,Sale, Order, OrderItem, Wishlist, Cart
 from .forms import (
     CategoryForm, SubCategoryForm, SubSubCategoryForm
 )
@@ -252,3 +254,105 @@ def delete_product(request, pk):
         'object': product,
         'title': 'Confirm Delete Product'
     })
+@admin_required
+def admin_reports_view(request):
+    # Time periods
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+    
+    # Product statistics
+    total_products = Product.objects.count()
+    active_products = Product.objects.filter(is_active=True).count()
+    inactive_products = total_products - active_products
+    
+    # Sales statistics
+    total_sales = Sale.objects.count()
+    total_revenue = Sale.objects.aggregate(total=Sum('sold_price'))['total'] or 0
+    
+    # Recent sales (last 7 days)
+    recent_sales = Sale.objects.filter(sold_at__date__gte=week_ago).count()
+    recent_revenue = Sale.objects.filter(
+        sold_at__date__gte=week_ago
+    ).aggregate(total=Sum('sold_price'))['total'] or 0
+    
+    # Order statistics
+    total_orders = Order.objects.count()
+    paid_orders = Order.objects.filter(status='paid').count()
+    unpaid_orders = Order.objects.filter(status='unpaid').count()
+    
+    # User engagement
+    total_wishlist_items = Wishlist.objects.count()
+    total_cart_items = Cart.objects.count()
+    
+    # Top selling products
+    top_products = Sale.objects.values(
+        'product__name'
+    ).annotate(
+        total_sold=Count('id'),
+        total_revenue=Sum('sold_price')
+    ).order_by('-total_sold')[:10]
+    
+    # Sales trend (last 30 days)
+    sales_trend = []
+    for i in range(30):
+        date = today - timedelta(days=29 - i)
+        daily_sales = Sale.objects.filter(sold_at__date=date).count()
+        daily_revenue = Sale.objects.filter(
+            sold_at__date=date
+        ).aggregate(total=Sum('sold_price'))['total'] or 0
+        sales_trend.append({
+            'date': date,
+            'sales_count': daily_sales,
+            'revenue': daily_revenue
+        })
+    
+    context = {
+        'total_products': total_products,
+        'active_products': active_products,
+        'inactive_products': inactive_products,
+        'total_sales': total_sales,
+        'total_revenue': total_revenue,
+        'recent_sales': recent_sales,
+        'recent_revenue': recent_revenue,
+        'total_orders': total_orders,
+        'paid_orders': paid_orders,
+        'unpaid_orders': unpaid_orders,
+        'total_wishlist_items': total_wishlist_items,
+        'total_cart_items': total_cart_items,
+        'top_products': top_products,
+        'sales_trend': sales_trend,
+        'today': today,
+        'week_ago': week_ago,
+        'month_ago': month_ago,
+    }
+    
+    return render(request, 'adminapp/reports.html', context)
+
+@admin_required
+def sales_report_view(request):
+    # Get date range from request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    sales = Sale.objects.all().order_by('-sold_at')
+    
+    if start_date and end_date:
+        sales = sales.filter(
+            sold_at__date__range=[start_date, end_date]
+        )
+    
+    total_sales = sales.count()
+    total_revenue = sales.aggregate(total=Sum('sold_price'))['total'] or 0
+    avg_sale_price = sales.aggregate(avg=Avg('sold_price'))['avg'] or 0
+    
+    context = {
+        'sales': sales,
+        'total_sales': total_sales,
+        'total_revenue': total_revenue,
+        'avg_sale_price': avg_sale_price,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    
+    return render(request, 'adminapp/sales_report.html', context)

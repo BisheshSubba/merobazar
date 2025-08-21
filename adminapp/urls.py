@@ -19,4 +19,6 @@ urlpatterns = [
     path('products/<int:pk>/', views.product_detail_admin, name='product_detail_admin'),
     path('products/<int:pk>/toggle-status/', views.toggle_product_status, name='toggle_product_status'),
     path('products/<int:pk>/delete/', views.delete_product, name='delete_product'),
+    path('admin/reports/', views.admin_reports_view, name='reports'),
+    path('admin/reports/sales/', views.sales_report_view, name='sales_report'),
 ]

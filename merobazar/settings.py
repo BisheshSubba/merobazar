@@ -75,6 +75,8 @@ REST_FRAMEWORK = {
 
 ROOT_URLCONF = 'merobazar.urls'
 
+LOGIN_URL ='/login/'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

@@ -4,11 +4,15 @@
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+            <div class="card shadow-lg border-0">
+                <div class="card-header py-3 text-white" style="background: linear-gradient(135deg, #6A11CB 0%, #2575FC 100%);">
                     <h4 class="mb-0">Add New Product - Select Category</h4>
-                    <div class="progress mt-3" style="height: 10px;">
-                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress mt-3 bg-white bg-opacity-25" style="height: 10px;">
+                        <div class="progress-bar bg-white" role="progressbar" style="width: 66%;" aria-valuenow="66" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small">
+                        <span>Step 2 of 3</span>
+                        <span>Category Selection</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -17,7 +21,7 @@
                         <input type="hidden" name="current_step" value="2">
                         
                         <div class="mb-4">
-                            <h5 class="mb-3">Product Category</h5>
+                            <h5 class="mb-3" style="color: #6A11CB;">Product Category</h5>
                             
                             {% if form.errors %}
                             <div class="alert alert-danger">
@@ -61,10 +65,10 @@
                         </div>
                         
                         <div class="form-navigation">
-                            <button type="submit" name="previous_step" class="btn btn-secondary">
+                            <button type="submit" name="previous_step" class="btn" style="background-color: #6A11CB; color: white;">
                                 Previous
                             </button>
-                            <button type="submit" name="step2_submit" class="btn btn-primary" id="next-button">
+                            <button type="submit" name="step2_submit" class="btn" style="background-color: #2575FC; color: white;" id="next-button">
                                 Next
                             </button>
                         </div>
@@ -116,52 +120,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         } else {
             subcategorySelect.innerHTML = '<option value="">Select a subcategory (optional)</option>';
-            subcategorySelect.disabled = true;
-            subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
-            subsubcategorySelect.disabled = true;
-        }
-    }
-    
-    function loadSubsubcategories(subcategoryId) {
-        if (subcategoryId) {
-            fetch(`{% url 'products:get_subsubcategories' %}?subcategory_id=${subcategoryId}`)
-                .then(response => response.json())
-                .then(data => {
+                    subcategorySelect.disabled = true;
                     subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
-                    data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.name;
-                        subsubcategorySelect.appendChild(option);
+                    subsubcategorySelect.disabled = true;
+                }
+            }
+            
+            function loadSubsubcategories(subcategoryId) {
+                if (subcategoryId) {
+                    fetch(`{% url 'products:get_subsubcategories' %}?subcategory_id=${subcategoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
+                        data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.name;
+                            subsubcategorySelect.appendChild(option);
+                        });
+                        subsubcategorySelect.disabled = false;
+                        
+                        // Re-select previous value if available
+                        const prevSubsubcategory = "{{ form.subsubcategory.value|default:'' }}";
+                        if (prevSubsubcategory) {
+                            subsubcategorySelect.value = prevSubsubcategory;
+                        }
                     });
-                    subsubcategorySelect.disabled = false;
-                    
-                    // Re-select previous value if available
-                    const prevSubsubcategory = "{{ form.subsubcategory.value|default:'' }}";
-                    if (prevSubsubcategory) {
-                        subsubcategorySelect.value = prevSubsubcategory;
-                    }
-                });
-        } else {
-            subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
-            subsubcategorySelect.disabled = true;
-        }
-    }
-    
-    // Event listeners
-    categorySelect.addEventListener('change', function() {
-        this.classList.remove('is-invalid');
-        loadSubcategories(this.value);
-    });
-    
-    subcategorySelect.addEventListener('change', function() {
-        loadSubsubcategories(this.value);
-    });
-    
-    // Initialize form
-    if (categorySelect.value) {
-        loadSubcategories(categorySelect.value);
-    }
-});
-</script>
-{% endblock %}
+                } else {
+                    subsubcategorySelect.innerHTML = '<option value="">Select a sub-subcategory (optional)</option>';
+                    subsubcategorySelect.disabled = true;
+                }
+            }
+            
+            // Event listeners
+            categorySelect.addEventListener('change', function() {
+                this.classList.remove('is-invalid');
+                loadSubcategories(this.value);
+            });
+            
+            subcategorySelect.addEventListener('change', function() {
+                loadSubsubcategories(this.value);
+            });
+            
+            // Initialize form
+            if (categorySelect.value) {
+                loadSubcategories(categorySelect.value);
+            }
+        });
+        </script>
+        {% endblock %}
