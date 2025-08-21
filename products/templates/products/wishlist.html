@@ -232,8 +232,7 @@
             });
         });
 
-        // Add to Cart Functionality
-        document.querySelectorAll('.add-to-cart').forEach(btn => {
+                document.querySelectorAll('.add-to-cart').forEach(btn => {
             btn.addEventListener('click', function() {
                 if (this.disabled || this.hasAttribute('data-in-cart')) {
                     return;
@@ -269,6 +268,18 @@
                             el.textContent = data.cart_count;
                             el.classList.remove('d-none');
                         });
+
+                        // ✅ GA4 Add to Cart event
+                        gtag('event', 'add_to_cart', {
+                            currency: "NPR", // adjust if needed
+                            value: data.product_price, // make sure backend sends price
+                            items: [{
+                                item_id: data.product_id, 
+                                item_name: data.product_name, 
+                                quantity: 1
+                            }]
+                        });
+
                     } else if (data.status === 'error') {
                         showToast(data.message, 'error');
                     } else if (data.status === 'login_required') {

@@ -156,3 +156,24 @@
         color: #2E7D32;
     }
 </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        gtag('event', 'purchase', {
+            transaction_id: '{{ order.id }}',
+            affiliation: 'MeroBazar',
+            value: '{{ order.total_price }}',
+            currency: 'NPR',
+            items: [
+                {% for item in order_items %}
+                {
+                    item_id: '{{ item.product.id }}',
+                    item_name: '{{ item.product.name }}',
+                    price: '{{ item.price }}',
+                    quantity: '{{ item.quantity }}'
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        });
+    });
+    </script>
+    
