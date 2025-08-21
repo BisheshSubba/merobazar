@@ -17,7 +17,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from recommendations.utils import HybridRecommender
 from django.db import transaction
-from .models import Category, SubCategory, SubSubCategory, Product, ProductImage, Wishlist, Cart, Order, OrderItem, Sale
+from .models import Category, SubCategory, SubSubCategory, Product, ProductImage, Wishlist, Cart, Order, OrderItem, Sale, UserInteraction, ProductSimilarity, UserSimilarity
 from .forms import ProductBasicInfoForm, ProductCategoryForm, ProductFinalDetailsForm, ProductImageForm, ProductUpdateForm
 import logging
 
@@ -491,15 +491,31 @@ def delete_product(request, pk):
     product = get_object_or_404(Product, pk=pk, user=request.user)
     
     try:
-        # Delete the product and its related data
+        # First try to delete related objects manually
+        try:
+            # Delete UserInteraction records
+            UserInteraction.objects.filter(product=product).delete()
+        except Exception as e:
+            logger.warning(f"Could not delete UserInteraction records: {str(e)}")
+            # Continue with deletion
+        
+        try:
+            # Delete ProductSimilarity records where this product is product1 or product2
+            ProductSimilarity.objects.filter(product1=product).delete()
+            ProductSimilarity.objects.filter(product2=product).delete()
+        except Exception as e:
+            logger.warning(f"Could not delete ProductSimilarity records: {str(e)}")
+            # Continue with deletion
+        
+        # Now delete the product
         product.delete()
         messages.success(request, 'Product deleted successfully!')
-        return redirect('profile')  # Redirect to user profile after deletion
+        return redirect('profile')
+        
     except Exception as e:
         logger.error(f"Error deleting product {pk}: {str(e)}")
         messages.error(request, 'Failed to delete product. Please try again.')
         return redirect('products:product_details', pk=pk)
-
 @login_required
 @require_POST
 def toggle_wishlist(request, product_id):
