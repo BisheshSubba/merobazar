@@ -677,8 +677,9 @@ def checkout_view(request):
         OrderItem.objects.create(
             order=order,
             product=item.product,
-            seller=item.product.user,  # or the correct attribute for the product seller
-            price=item.product.price
+            seller=item.product.user,
+            price=item.product.price,
+            quantity=item.quantity  # Make sure you have quantity in your OrderItem model
         )
 
     cart_items.delete()
@@ -688,8 +689,29 @@ def checkout_view(request):
 
 @login_required
 def order_success(request, order_id):
-    order = Order.objects.get(id=order_id, user=request.user)
-    return render(request, 'products/order_success.html', {'order': order})
+    order = (
+        Order.objects
+        .prefetch_related('items__product__category')
+        .get(id=order_id, user=request.user)
+    )
+    return render(request, 'products/order_success.html', {
+        'order': {
+            'id': order.id,
+            'total_price': order.total_price,
+            'items': [
+                {
+                    'product': {
+                        'id': i.product.id,
+                        'name': i.product.name,
+                        'category': {'name': i.product.category.name}
+                    },
+                    'price': i.price,
+                    'quantity': i.quantity
+                } for i in order.items.all()
+            ]
+        }
+    })
+
 
 @login_required
 def cancel_order_view(request, order_id):
