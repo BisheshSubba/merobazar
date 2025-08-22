@@ -673,14 +673,20 @@ def checkout_view(request):
         status='unpaid'
     )
 
+    items_data = []
     for item in cart_items:
         OrderItem.objects.create(
             order=order,
             product=item.product,
             seller=item.product.user,
             price=item.product.price,
-            quantity=item.quantity  # Make sure you have quantity in your OrderItem model
         )
+        items_data.append({
+            "item_id": item.product.id,
+            "item_name": item.product.name,
+            "item_category": item.product.category.name,
+            "price": item.product.price,
+        })
 
     cart_items.delete()
 
@@ -689,29 +695,8 @@ def checkout_view(request):
 
 @login_required
 def order_success(request, order_id):
-    order = (
-        Order.objects
-        .prefetch_related('items__product__category')
-        .get(id=order_id, user=request.user)
-    )
-    return render(request, 'products/order_success.html', {
-        'order': {
-            'id': order.id,
-            'total_price': order.total_price,
-            'items': [
-                {
-                    'product': {
-                        'id': i.product.id,
-                        'name': i.product.name,
-                        'category': {'name': i.product.category.name}
-                    },
-                    'price': i.price,
-                    'quantity': i.quantity
-                } for i in order.items.all()
-            ]
-        }
-    })
-
+    order = Order.objects.get(id=order_id, user=request.user)
+    return render(request, 'products/order_success.html', {'order': order})
 
 @login_required
 def cancel_order_view(request, order_id):

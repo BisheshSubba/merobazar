@@ -256,10 +256,10 @@
                             <i class="fas fa-chevron-left me-2"></i>Continue Shopping
                         </a>
                         <a href="{% url 'products:checkout' %}" 
-                        class="btn btn-checkout {% if has_unavailable %}disabled{% endif %}">
-                        Proceed to Checkout <i class="fas fa-arrow-right ms-2"></i>
+                           id="checkout-btn"
+                           class="btn btn-checkout {% if has_unavailable %}disabled{% endif %}">
+                            Proceed to Checkout <i class="fas fa-arrow-right ms-2"></i>
                         </a>
-
                     </td>
                 </tr>
             </tfoot>
@@ -279,19 +279,25 @@
     {% endif %}
 </div>
 
+<script id="cart-data" type="application/json">
+    {{ cart_items_json|safe }}
+</script>
+
 <script>
-    // Enhanced remove functionality with proper URL and response handling
+document.addEventListener('DOMContentLoaded', function () {
+    const cartData = JSON.parse(document.getElementById('cart-data').textContent);
+
+    // Handle remove buttons
     document.querySelectorAll('.remove-from-cart').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const itemId = this.dataset.itemId;
             const row = this.closest('tr');
-            
+
             if (confirm('Are you sure you want to remove this item?')) {
-                // Add fade-out animation
                 row.style.transition = 'all 0.3s ease';
                 row.style.opacity = '0';
                 row.style.transform = 'translateX(-50px)';
-                
+
                 fetch(`/products/cart/remove/${itemId}/`, {
                     method: 'POST',
                     headers: {
@@ -301,43 +307,29 @@
                     },
                     body: JSON.stringify({})
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
+                .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Update cart count in header if you have one
-                        const cartCountElements = document.querySelectorAll('.cart-count');
-                        cartCountElements.forEach(el => {
+                        document.querySelectorAll('.cart-count').forEach(el => {
                             el.textContent = data.cart_count;
-                            if (data.cart_count == 0) {
-                                el.classList.add('d-none');
-                            }
+                            if (data.cart_count == 0) el.classList.add('d-none');
                         });
-                        
-                        // Remove the row after animation completes
+
                         setTimeout(() => {
                             row.remove();
-                            // Reload if no items left or update total dynamically
                             if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
                                 location.reload();
                             }
                         }, 300);
                     } else {
-                        // Show error message
                         alert('Error: ' + (data.message || 'Failed to remove item'));
-                        // Reset the row appearance
                         row.style.opacity = '1';
                         row.style.transform = 'none';
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(err => {
+                    console.error('Error:', err);
                     alert('An error occurred while removing the item');
-                    // Reset the row appearance
                     row.style.opacity = '1';
                     row.style.transform = 'none';
                 });
@@ -345,40 +337,48 @@
         });
     });
 
-    // Auto-remove unavailable products on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const unavailableItems = document.querySelectorAll('.unavailable-product');
-        
-        if (unavailableItems.length > 0) {
-            // Show confirmation message
-            if (confirm('Some products in your cart are no longer available. Would you like to remove them now?')) {
-                // Remove all unavailable items
-                unavailableItems.forEach(item => {
-                    const itemId = item.querySelector('.remove-from-cart').dataset.itemId;
-                    
-                    fetch(`/products/cart/remove/${itemId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}',
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            item.remove();
-                            // Reload if no items left
-                            if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
-                                location.reload();
-                            }
-                        }
-                    });
+    // Auto-remove unavailable products
+    const unavailableItems = document.querySelectorAll('.unavailable-product');
+    if (unavailableItems.length > 0 && confirm('Some products are no longer available. Remove them?')) {
+        unavailableItems.forEach(item => {
+            const itemId = item.querySelector('.remove-from-cart').dataset.itemId;
+
+            fetch(`/products/cart/remove/${itemId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    item.remove();
+                    if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
+                        location.reload();
+                    }
+                }
+            });
+        });
+    }
+
+    // GA4 begin_checkout
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (checkoutBtn && !checkoutBtn.classList.contains('disabled')) {
+        checkoutBtn.addEventListener('click', function () {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'begin_checkout', {
+                    currency: 'NPR',
+                    value: cartData.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                    items: cartData
                 });
+                console.log('GA4 begin_checkout event fired');
             }
-        }
-    });
+        });
+    }
+});
 </script>
 
 {% endblock %}
