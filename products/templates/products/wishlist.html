@@ -96,16 +96,14 @@
                         
                         <!-- Add to Cart Button -->
                         <button class="btn btn-sm btn-primary add-to-cart" 
-        data-product-id="{{ item.product.id }}"
-        {% if not item.product.is_active or item.product.id in cart.product %}disabled{% endif %}
-        {% if item.product.id in cart.product %}data-in-cart="true"{% endif %}
-
-                                title="{% if not item.product.is_active %}Unavailable{% elif item.product.id in cart.product %}Already in Cart{% else %}Add to Cart{% endif %}">
-                            <i class="fas fa-{% if not item.product.is_active %}times{% elif item.product.id in cart.product %}check{% else %}shopping-cart{% endif %} me-1"></i>
+                                data-product-id="{{ item.product.id }}"
+                                data-product-name="{{ item.product.name }}"
+                                data-product-price="{{ item.product.discount_price|default:item.product.price }}"
+                                {% if not item.product.is_active %}disabled{% endif %}
+                                title="{% if not item.product.is_active %}Unavailable{% else %}Add to Cart{% endif %}">
+                            <i class="fas fa-{% if not item.product.is_active %}times{% else %}shopping-cart{% endif %} me-1"></i>
                             {% if not item.product.is_active %}
                                 Unavailable
-                            {% elif item.product.id in cart.product %}
-                                Added
                             {% else %}
                                 Add
                             {% endif %}
@@ -181,12 +179,6 @@
             }
         }
 
-        // Initialize cart buttons on page load
-        document.querySelectorAll('.add-to-cart').forEach(btn => {
-            const isInCart = btn.hasAttribute('data-in-cart');
-            updateCartButton(btn, isInCart);
-        });
-
         // Remove from Wishlist Functionality
         document.querySelectorAll('.remove-wishlist').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -232,13 +224,16 @@
             });
         });
 
-                document.querySelectorAll('.add-to-cart').forEach(btn => {
+        // Add to Cart Functionality
+        document.querySelectorAll('.add-to-cart').forEach(btn => {
             btn.addEventListener('click', function() {
-                if (this.disabled || this.hasAttribute('data-in-cart')) {
+                if (this.disabled) {
                     return;
                 }
                 
                 const productId = this.getAttribute('data-product-id');
+                const productName = this.getAttribute('data-product-name');
+                const productPrice = this.getAttribute('data-product-price');
                 const button = this;
                 
                 fetch(`/products/cart/add/${productId}/`, {
@@ -269,19 +264,25 @@
                             el.classList.remove('d-none');
                         });
 
-                        // ✅ GA4 Add to Cart event
-                        window.dataLayer = window.dataLayer || [];
-                        window.dataLayer.push({
-                            'event': 'add_to_cart',
-                            'currency': "NPR",
-                            'value': data.product_price,
-                            'items': [{
-                                'item_id': data.product_id,
-                                'item_name': data.product_name,
-                                'quantity': 1
-                            }]
-                        });
+                        // Dispatch event to update counters in base.html
+                        document.dispatchEvent(new CustomEvent('cartUpdated'));
 
+                        // GA4 Add to Cart event - Fixed structure
+                        if (typeof gtag !== 'undefined') {
+                            gtag('event', 'add_to_cart', {
+                                'currency': 'NPR',
+                                'value': parseFloat(productPrice),
+                                'items': [{
+                                    'item_id': productId,
+                                    'item_name': productName,
+                                    'quantity': 1,
+                                    'price': parseFloat(productPrice)
+                                }]
+                            });
+                            console.log('GA4 event fired: add_to_cart');
+                        } else {
+                            console.warn('gtag is not defined');
+                        }
                     } else if (data.status === 'error') {
                         showToast(data.message, 'error');
                     } else if (data.status === 'login_required') {

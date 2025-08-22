@@ -129,12 +129,13 @@
                     <!-- Action Buttons -->
                     <div class="d-flex gap-2 mb-4">
                         <button class="btn btn-primary flex-grow-1 py-2" id="add-to-cart" 
-                                {% if not product.is_active or product.id in cart_product_ids %}disabled{% endif %}>
-                            <i class="fas fa-{% if product.id in cart_product_ids %}check-circle{% else %}shopping-cart{% endif %} me-1"></i>
+                                data-product-id="{{ product.id }}"
+                                data-product-name="{{ product.name }}"
+                                data-product-price="{{ product.discount_price|default:product.price }}"
+                                {% if not product.is_active %}disabled{% endif %}>
+                            <i class="fas fa-{% if not product.is_active %}times{% else %}shopping-cart{% endif %} me-1"></i>
                             {% if not product.is_active %}
                                 Unavailable
-                            {% elif product.id in cart_product_ids %}
-                                Added to Cart
                             {% else %}
                                 Add to Cart
                             {% endif %}
@@ -308,8 +309,8 @@
                                         <i class="far fa-heart fa-sm"></i>
                                     </button>
                                     <button class="btn btn-sm btn-primary add-to-cart-sm p-1" data-product-id="{{ recommended.id }}" 
-                                            {% if not recommended.is_active or recommended.id in cart_product_ids %}disabled{% endif %}>
-                                        <i class="fas fa-{% if recommended.id in cart_product_ids %}check{% else %}cart-plus{% endif %} fa-sm"></i>
+                                            {% if not recommended.is_active %}disabled{% endif %}>
+                                        <i class="fas fa-{% if not recommended.is_active %}times{% else %}cart-plus{% endif %} fa-sm"></i>
                                     </button>
                                 </div>
                             </div>
@@ -415,10 +416,9 @@
             new bootstrap.Toast(toastEl).show();
             toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
         }
-
         // Wishlist functionality
         const wishlistBtn = document.getElementById('wishlist-btn');
-        const productId = "{{ product.id }}";
+                const productId = "{{ product.id }}";
         
         fetch(`/products/wishlist/check/${productId}/`, {
             method: 'GET',
@@ -454,9 +454,13 @@
             })
             .catch(error => showToast('An error occurred', 'error'));
         });
-        
-            // Add to cart functionality
-        document.getElementById('add-to-cart').addEventListener('click', function() {
+        // Add to cart functionality
+        const addToCartBtn = document.getElementById('add-to-cart');
+        addToCartBtn.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const productName = this.getAttribute('data-product-name');
+            const productPrice = this.getAttribute('data-product-price');
+            
             fetch(`/products/cart/add/${productId}/`, {
                 method: 'POST',
                 headers: {
@@ -464,7 +468,16 @@
                     'Content-Type': 'application/json'
                 },
             })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 403) {
+                    showToast('Please login to add to cart', 'error');
+                    throw new Error('Login required');
+                }
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     showToast('Added to cart');
@@ -475,26 +488,33 @@
                     this.disabled = true;
                     this.innerHTML = '<i class="fas fa-check-circle me-1"></i>Added to Cart';
 
-                    // ✅ GA4 Add to Cart event tracking
-                    window.dataLayer = window.dataLayer || [];
-                    window.dataLayer.push({
-                        'event': 'add_to_cart',
-                        'currency': "NPR",
-                        'value': data.product_price,
-                        'items': [{
-                            'item_id': data.product_id,
-                            'item_name': data.product_name,
-                            'quantity': 1
-                        }]
-                    });
+                    // Dispatch event to update counters in base.html
+                    document.dispatchEvent(new CustomEvent('cartUpdated'));
 
-                } else if (data.status === 'login_required') {
-                    showToast('Please login to add to cart', 'error');
+                    // ✅ GA4 Add to Cart event tracking - Fixed structure
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'add_to_cart', {
+                            'currency': 'NPR',
+                            'value': parseFloat(productPrice),
+                            'items': [{
+                                'item_id': productId,
+                                'item_name': productName,
+                                'quantity': 1,
+                                'price': parseFloat(productPrice)
+                            }]
+                        });
+                        console.log('GA4 event fired: add_to_cart');
+                    } else {
+                        console.warn('gtag is not defined');
+                    }
                 }
             })
-            .catch(error => showToast('An error occurred', 'error'));
+            .catch(error => {
+                if (error.message !== 'Login required') {
+                    showToast('An error occurred', 'error');
+                }
+            });
         });
-
 
         // Share button
         document.getElementById('share-btn').addEventListener('click', function() {
