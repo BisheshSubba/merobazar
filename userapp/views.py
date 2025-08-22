@@ -4,9 +4,16 @@ from .forms import UserRegisterForm, LoginForm, ProfileUpdateForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.shortcuts import render, get_object_or_404
+from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from .models import CustomUser
 from django.db.models import Q
 from products.models import Product, Category, SubCategory, Order, OrderItem
 
@@ -18,11 +25,42 @@ def register_view(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.role = 'user'
+            user.is_active = False   # deactivate until verified
             user.save()
+
+            # Send activation email
+            current_site = get_current_site(request)
+            subject = "Confirm your Gmail account"
+            message = render_to_string('userapp/email_verification.html', {
+                'user': user,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+            })
+            email = EmailMessage(subject, message, to=[user.email])
+            email.send()
+
+            messages.success(request, "Account created! Please check your Gmail inbox to verify your account.")
             return redirect('user_login')
     else:
         form = UserRegisterForm()
     return render(request, 'userapp/register.html', {'form': form})
+
+
+def activate_view(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        messages.success(request, "Your email has been verified! You can now log in.")
+        return redirect('user_login')
+    else:
+        return render(request, 'userapp/activation_failed.html')
 
 def login_view(request):
     if request.user.is_authenticated:

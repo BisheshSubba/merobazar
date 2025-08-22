@@ -4,138 +4,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register </title>
+    <title>Register</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #333;
+            font-family: 'Segoe UI', sans-serif;
+            background:#f5f7fa;
+            margin:0; display:flex; justify-content:center; align-items:center; 
+            min-height:100vh; color:#333;
         }
-        
         .auth-card {
-            width: 100%;
-            max-width: 450px;
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            width:100%; max-width:450px; background:#fff; padding:40px;
+            border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1);
         }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #2c3e50;
-            font-size: 28px;
+        h1 { text-align:center; margin-bottom:30px; color:#2c3e50; font-size:28px; }
+        .form-group { margin-bottom:20px; }
+        label { display:block; margin-bottom:6px; font-weight:500; color:#4a5568; }
+        input, button {
+            width:100%; padding:12px 15px; font-size:16px; border-radius:8px;
+            border:1px solid #e2e8f0; transition:.3s;
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #4a5568;
-        }
-        
-        input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        input:focus {
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
-            outline: none;
-        }
-        
+        input:focus { border-color:#4299e1; box-shadow:0 0 0 3px rgba(66,153,225,.2); outline:none; }
         button {
-            width: 100%;
-            padding: 14px;
-            background-color: #4299e1;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 10px;
+            background:#4299e1; color:#fff; font-weight:600; cursor:pointer; border:none; margin-top:10px;
         }
-        
-        button:hover {
-            background-color: #3182ce;
-        }
-        
-        .auth-footer {
-            text-align: center;
-            margin-top: 25px;
-            color: #718096;
-        }
-        
-        .auth-footer a {
-            color: #4299e1;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .auth-footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .errorlist {
-            color: #e53e3e;
-            margin: 0 0 15px 0;
-            padding: 0;
-            list-style: none;
-            font-size: 14px;
-        }
-        
+        button:hover { background:#3182ce; }
+        .auth-footer { text-align:center; margin-top:20px; color:#718096; }
+        .auth-footer a { color:#4299e1; text-decoration:none; }
+        .auth-footer a:hover { text-decoration:underline; }
+        .errorlist { color:#e53e3e; margin:0 0 10px 0; list-style:none; font-size:14px; }
         .requirements {
-            display: none;
-            background: #f8f9fa;
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 8px;
-            font-size: 13px;
-            color: #4a5568;
-            border: 1px solid #e2e8f0;
+            display:none; background:#f8f9fa; border:1px solid #e2e8f0;
+            border-radius:6px; padding:10px; margin-top:8px; font-size:13px; color:#4a5568;
         }
-        
-        .requirements ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        
-        .requirements li {
-            margin-bottom: 4px;
-        }
-        
-        .requirements li.valid {
-            color: #38a169;
-        }
-        
-        .requirements li.invalid {
-            color: #e53e3e;
-        }
+        .requirements li.valid { color:#38a169; }
+        .requirements li.invalid { color:#e53e3e; }
     </style>
 </head>
 <body>
     <div class="auth-card">
         <h1>Create an Account</h1>
-        
         <form method="POST" action="{% url 'user_register' %}" id="registrationForm">
             {% csrf_token %}
             
@@ -186,58 +93,56 @@
         document.addEventListener('DOMContentLoaded', function() {
             const passwordInput = document.querySelector('#id_password1');
             const requirements = document.querySelector('#passwordRequirements');
-            const submitBtn = document.querySelector('#submitBtn');
-            
+            const form = document.querySelector('#registrationForm');
+
+            // Password validation UI
             if (passwordInput && requirements) {
-                passwordInput.addEventListener('focus', function() {
-                    requirements.style.display = 'block';
-                });
-                
-                passwordInput.addEventListener('blur', function() {
-                    if (passwordInput.value === '') {
-                        requirements.style.display = 'none';
-                    }
-                });
-                
-                passwordInput.addEventListener('input', function() {
-                    const password = passwordInput.value;
-                    
-                    // Validate length
-                    document.querySelector('#length').className = password.length >= 8 ? 'valid' : 'invalid';
-                    
-                    // Validate letter
-                    document.querySelector('#letter').className = /[A-Za-z]/.test(password) ? 'valid' : 'invalid';
-                    
-                    // Validate number
-                    document.querySelector('#number').className = /[0-9]/.test(password) ? 'valid' : 'invalid';
-                    
-                    // Validate special character
-                    document.querySelector('#special').className = /[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'valid' : 'invalid';
-                });
-                
-                // Form submission validation
-                document.querySelector('#registrationForm').addEventListener('submit', function(e) {
-                    const password = passwordInput.value;
-                    const password2 = document.querySelector('#id_password2').value;
-                    
-                    if (password !== password2) {
-                        e.preventDefault();
-                        alert('Passwords do not match!');
-                        return false;
-                    }
-                    
-                    if (password.length < 8 || 
-                        !/[A-Za-z]/.test(password) || 
-                        !/[0-9]/.test(password) || 
-                        !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-                        e.preventDefault();
-                        alert('Password does not meet all requirements!');
-                        return false;
-                    }
-                    
-                    return true;
+                passwordInput.addEventListener('focus', () => requirements.style.display = 'block');
+                passwordInput.addEventListener('blur', () => { if (!passwordInput.value) requirements.style.display = 'none'; });
+                passwordInput.addEventListener('input', () => {
+                    const p = passwordInput.value;
+                    document.querySelector('#length').className = p.length >= 8 ? 'valid':'invalid';
+                    document.querySelector('#letter').className = /[A-Za-z]/.test(p)?'valid':'invalid';
+                    document.querySelector('#number').className = /[0-9]/.test(p)?'valid':'invalid';
+                    document.querySelector('#special').className = /[!@#$%^&*(),.?":{}|<>]/.test(p)?'valid':'invalid';
                 });
             }
+
+            // Full validation before submit
+            form.addEventListener('submit', function(e) {
+                const name = document.querySelector('#id_username')?.value.trim();
+                const phone = document.querySelector('#id_phone')?.value.trim();
+                const p1 = document.querySelector('#id_password1').value;
+                const p2 = document.querySelector('#id_password2').value;
+
+                // Name validation
+                if (name && !/^[A-Za-z ]+$/.test(name)) {
+                    e.preventDefault();
+                    alert("Name must contain only letters.");
+                    return;
+                }
+
+                // Phone validation
+                if (phone && !/^98\d{8}$/.test(phone)) {
+                    e.preventDefault();
+                    alert("Phone must start with 98 and be exactly 10 digits.");
+                    return;
+                }
+
+                // Passwords match
+                if (p1 !== p2) {
+                    e.preventDefault();
+                    alert("Passwords do not match!");
+                    return;
+                }
+
+                // Password requirements
+                if (p1.length < 8 || !/[A-Za-z]/.test(p1) || !/[0-9]/.test(p1) || !/[!@#$%^&*(),.?":{}|<>]/.test(p1)) {
+                    e.preventDefault();
+                    alert("Password does not meet all requirements!");
+                    return;
+                }
+            });
         });
     </script>
 </body>

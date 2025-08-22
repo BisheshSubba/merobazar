@@ -1,0 +1,7 @@
+<p>Hello {{ user.username }},</p>
+<p>Thanks for signing up! Please click the link below to activate your Gmail account:</p>
+
+<p><a href="http://{{ domain }}{% url 'activate' uidb64=uid token=token %}">
+Activate my account</a></p>
+
+<p>If you didn’t request this, you can ignore this email.</p>

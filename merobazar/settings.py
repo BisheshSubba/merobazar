@@ -124,7 +124,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+AUTH_USER_MODEL = "userapp.CustomUser"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "bisheshs255@gmail.com"
+EMAIL_HOST_PASSWORD = "odqiaqfvknisjtez" 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
