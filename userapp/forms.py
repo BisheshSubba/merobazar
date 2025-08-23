@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm,  UserChangeForm
 from .models import CustomUser
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
 from .models import CustomUser
 import re
 
@@ -32,10 +32,19 @@ class UserRegisterForm(UserCreationForm):
             raise forms.ValidationError("Name must contain only letters and spaces.")
         return username
 
-
 class LoginForm(AuthenticationForm):
-    pass
 
+    def confirm_login_allowed(self, user):
+        if not user.is_active:
+            raise ValidationError(
+                "Your account is inactive. Please check your email to verify your account.",
+                code='inactive',
+            )
+        if user.role == 'admin':
+            raise ValidationError(
+                "You don't have permission to access this login page. Please use the admin login.",
+                code='admin_login',
+            )
 
 class ProfileUpdateForm(UserChangeForm):
     password = None  # Remove password field from the form

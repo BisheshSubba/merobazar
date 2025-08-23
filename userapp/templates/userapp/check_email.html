@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Check Your Email</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .message-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h2 { color: #2c3e50; }
+        p { color: #4a5568; margin: 20px 0; }
+        a { color: #4299e1; text-decoration: none; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="message-box">
+        <h2>Almost there!</h2>
+        <p>An activation email has been sent to <strong>{{ email }}</strong>.</p>
+        <p>Please check your Gmail inbox and click the verification link to activate your account.</p>
+        <p>Once activated, you can <a href="{% url 'user_login' %}">log in here</a>.</p>
+    </div>
+</body>
+</html>

@@ -11,7 +11,6 @@ class CustomUser(AbstractUser):
     status = models.BooleanField(default=True)
     profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     
-    # Remove first_name and last_name from the model
     first_name = None
     last_name = None
 

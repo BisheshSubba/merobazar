@@ -18,7 +18,6 @@ from django.db.models import Q
 from products.models import Product, Category, SubCategory, Order, OrderItem
 
 User = get_user_model()
-
 def register_view(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
@@ -40,12 +39,11 @@ def register_view(request):
             email = EmailMessage(subject, message, to=[user.email])
             email.send()
 
-            messages.success(request, "Account created! Please check your Gmail inbox to verify your account.")
-            return redirect('user_login')
+            # Instead of redirecting to login, show confirmation page
+            return render(request, 'userapp/check_email.html', {'email': user.email})
     else:
         form = UserRegisterForm()
     return render(request, 'userapp/register.html', {'form': form})
-
 
 def activate_view(request, uidb64, token):
     try:
@@ -67,25 +65,43 @@ def login_view(request):
         if request.user.role == 'admin':
             return redirect('admin_login')
         return redirect('user_dashboard')
-        
+
     if request.method == 'POST':
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            
+
+            # Check if user is inactive due to email verification
             if not user.is_active:
-                messages.error(request, "Your account has been suspended.", extra_tags='login')
+                messages.error(request, "Your account is inactive. Please check your email to verify your account.", extra_tags='login')
+                
+                # Optional: resend verification email link
+                resend = request.POST.get("resend_verification")
+                if resend == "true":
+                    current_site = get_current_site(request)
+                    subject = "Confirm your Gmail account"
+                    message = render_to_string('userapp/email_verification.html', {
+                        'user': user,
+                        'domain': current_site.domain,
+                        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                        'token': default_token_generator.make_token(user),
+                    })
+                    email = EmailMessage(subject, message, to=[user.email])
+                    email.send()
+                    messages.success(request, "Verification email resent. Please check your inbox.", extra_tags='login')
+
                 return redirect('user_login')
-            
+
             if user.role == 'admin':
                 messages.error(request, "You don't have permission to access this login page. Please use the admin login.", extra_tags='login')
                 return redirect('admin_login')
-            
+
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!", extra_tags='login')
             return redirect('user_dashboard')
     else:
         form = LoginForm()
+
     return render(request, 'userapp/login.html', {'form': form})
 
 def user_dashboard(request):
