@@ -279,14 +279,8 @@
     {% endif %}
 </div>
 
-<script id="cart-data" type="application/json">
-    {{ cart_items_json|safe }}
-</script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const cartData = JSON.parse(document.getElementById('cart-data').textContent);
-
     // Handle remove buttons
     document.querySelectorAll('.remove-from-cart').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -298,25 +292,53 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.style.opacity = '0';
                 row.style.transform = 'translateX(-50px)';
 
+                // Get CSRF token from cookies
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+                const csrftoken = getCookie('csrftoken');
+
                 fetch(`/products/cart/remove/${itemId}/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-CSRFToken': csrftoken,
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({})
                 })
-                .then(r => r.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.status === 'success') {
+                        // Update cart count in navigation
                         document.querySelectorAll('.cart-count').forEach(el => {
                             el.textContent = data.cart_count;
-                            if (data.cart_count == 0) el.classList.add('d-none');
+                            if (data.cart_count == 0) {
+                                el.classList.add('d-none');
+                            } else {
+                                el.classList.remove('d-none');
+                            }
                         });
 
                         setTimeout(() => {
                             row.remove();
+                            // If no items left, reload the page to show empty cart message
                             if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
                                 location.reload();
                             }
@@ -339,44 +361,57 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Auto-remove unavailable products
     const unavailableItems = document.querySelectorAll('.unavailable-product');
-    if (unavailableItems.length > 0 && confirm('Some products are no longer available. Remove them?')) {
-        unavailableItems.forEach(item => {
-            const itemId = item.querySelector('.remove-from-cart').dataset.itemId;
-
-            fetch(`/products/cart/remove/${itemId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({})
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    item.remove();
-                    if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
-                        location.reload();
+    if (unavailableItems.length > 0) {
+        // Ask user if they want to remove unavailable items
+        if (confirm('Some products are no longer available. Remove them?')) {
+            unavailableItems.forEach(item => {
+                const itemId = item.querySelector('.remove-from-cart').dataset.itemId;
+                
+                // Get CSRF token from cookies
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
                     }
+                    return cookieValue;
                 }
-            });
-        });
-    }
-
-    // GA4 begin_checkout
-    const checkoutBtn = document.getElementById('checkout-btn');
-    if (checkoutBtn && !checkoutBtn.classList.contains('disabled')) {
-        checkoutBtn.addEventListener('click', function () {
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'begin_checkout', {
-                    currency: 'NPR',
-                    value: cartData.reduce((sum, item) => sum + item.price * item.quantity, 0),
-                    items: cartData
+                const csrftoken = getCookie('csrftoken');
+                
+                fetch(`/products/cart/remove/${itemId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        item.remove();
+                        if (document.querySelectorAll('.cart-table tbody tr').length === 0) {
+                            location.reload();
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error removing unavailable item:', err);
                 });
-                console.log('GA4 begin_checkout event fired');
-            }
-        });
+            });
+        }
     }
 });
 </script>
