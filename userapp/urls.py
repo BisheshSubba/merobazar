@@ -13,5 +13,6 @@ urlpatterns = [
     path('my-orders/', views.my_orders_view, name='my_orders'),
     path('orders-received/', views.orders_received_view, name='orders_received'),
     path('order/<int:order_id>/', views.order_detail_view, name='order_detail'),
+    path('landing_page/', views.landing_page, name='landing'),
 ]
  

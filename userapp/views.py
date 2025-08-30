@@ -246,3 +246,6 @@ def search_products(request):
         'categories': Category.objects.prefetch_related('subcategories').all(),
     }
     return render(request, 'userapp/search_results.html', context)
+
+def landing_page(request):
+    return redirect('landing')
