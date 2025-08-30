@@ -248,4 +248,4 @@ def search_products(request):
     return render(request, 'userapp/search_results.html', context)
 
 def landing_page(request):
-     return render(request, 'landing.html') 
+     return render(request, 'userapp/landing.html') 
