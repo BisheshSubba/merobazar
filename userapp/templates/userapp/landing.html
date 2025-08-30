@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mero Bazar - Marketplace</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      color: #333;
+    }
+
+    /* Hero Section */
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 10%;
+      min-height: 100vh;
+    }
+
+    .hero-text {
+      max-width: 50%;
+    }
+
+    .hero-text h1 {
+      font-size: 3rem;
+      color: #2d3436;
+      margin-bottom: 20px;
+    }
+
+    .hero-text p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      line-height: 1.5;
+      color: #555;
+    }
+
+    .cta-btn {
+      background: #0984e3;
+      color: #fff;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: 0.3s;
+    }
+
+    .cta-btn:hover {
+      background: #74b9ff;
+    }
+
+    /* Right Side Image Placeholder */
+    .hero-image {
+      max-width: 40%;
+    }
+
+    .hero-image img {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 40px 5%;
+      }
+      .hero-text {
+        max-width: 100%;
+      }
+      .hero-image {
+        max-width: 80%;
+        margin-top: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Mero Bazar</h1>
+      <p>Your one-stop platform to <strong>buy & sell</strong> products with ease and trust.</p>
+      <p>Join thousands of buyers and sellers already using Mero Bazar.</p>
+      <a href="{% url 'dashboard' %}" class="cta-btn">Get Started</a>
+    </div>
+
+    <div class="hero-image">
+      <img src="https://via.placeholder.com/500x400.png?text=Mero+Bazar" alt="Marketplace illustration">
+    </div>
+  </section>
+</body>
+</html>
