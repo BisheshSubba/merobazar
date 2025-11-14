@@ -45,7 +45,7 @@ def get_recommendations(request):
         )
         
         # Serialize recommendations
-        from products.serializers import ProductSerializer  # You'll need to create this
+        from products.serializers import ProductSerializer 
         serializer = ProductSerializer(recommendations, many=True, context={'request': request})
         
         return Response({

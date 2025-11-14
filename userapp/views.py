@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from .models import CustomUser
 from django.db.models import Q
+from recommendations.utils import HybridRecommender
 from products.models import Product, Category, SubCategory, Order, OrderItem
 
 User = get_user_model()
@@ -105,15 +106,35 @@ def login_view(request):
     return render(request, 'userapp/login.html', {'form': form})
 
 def user_dashboard(request):
-
     categories = Category.objects.prefetch_related('subcategories').all()
     featured_products = Product.objects.filter(is_active=True).order_by('-created_at')[:8]
     recent_products = Product.objects.filter(is_active=True).order_by('-created_at')[:8]
-    
+
+    recommender = HybridRecommender()
+    recommended_products = []
+    popular_products = []
+
+    if request.user.is_authenticated:
+        # Personalized recommendations
+        try:
+            recommended_products = recommender.get_hybrid_recommendations(
+                user_id=request.user.id,
+                top_n=8
+            )
+        except Exception:
+            pass
+    else:
+        # Show popular products for guests
+        try:
+            popular_products = recommender.get_popular_products(top_n=8)
+        except Exception:
+            pass
     context = {
         'categories': categories,
         'featured_products': featured_products,
         'recent_products': recent_products,
+        'recommended_products': recommended_products,
+        'popular_products': popular_products,
     }
     return render(request, 'userapp/dashboard.html', context)
 

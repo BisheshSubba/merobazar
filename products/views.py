@@ -409,10 +409,22 @@ def get_subsubcategories(request):
     subsubcategories = SubSubCategory.objects.filter(subcategory_id=subcategory_id).order_by('name')
     data = [{'id': subsub.id, 'name': subsub.name} for subsub in subsubcategories]
     return JsonResponse(data, safe=False)
+
 def product_details(request, pk):
     product = get_object_or_404(Product, pk=pk)
-    
-    # Get recommendations for the current user
+
+    # Track view interaction
+    if request.user.is_authenticated:
+        try:
+            UserInteraction.objects.create(
+                user=request.user,
+                product=product,
+                interaction_type='view'
+            )
+        except Exception:
+            pass  # Fail silently if tracking doesn't work
+
+    # Personalized recommendations
     recommended_products = []
     if request.user.is_authenticated:
         try:
@@ -421,48 +433,33 @@ def product_details(request, pk):
                 user_id=request.user.id,
                 top_n=8
             )
-            # If no personalized recommendations, fallback to category-based
             if not recommended_products:
                 recommended_products = Product.objects.filter(
                     category=product.category,
                     is_active=True
                 ).exclude(id=product.id).order_by('?')[:8]
-        except Exception as e:
-            # Fallback to category-based products if recommendation system fails
+        except Exception:
             recommended_products = Product.objects.filter(
                 category=product.category,
                 is_active=True
             ).exclude(id=product.id).order_by('?')[:8]
     else:
-        # For non-authenticated users, show category-based products
         recommended_products = Product.objects.filter(
             category=product.category,
             is_active=True
         ).exclude(id=product.id).order_by('?')[:8]
-    
-    # Get cart product IDs for the current user
+
+    # Cart products for current user
     cart_product_ids = []
     if request.user.is_authenticated:
         cart_product_ids = request.user.cart_items.values_list('product_id', flat=True)
-    
-    # Track view for recommendations (if user is authenticated)
-    if request.user.is_authenticated:
-        try:
-            from recommendations.models import UserInteraction
-            UserInteraction.objects.create(
-                user=request.user,
-                product=product,
-                interaction_type='view'
-            )
-        except Exception as e:
-            # Silently fail if tracking doesn't work
-            pass
-    
-    return render(request, 'products/product_detail.html', {
+
+    context = {
         'product': product,
         'recommended_products': recommended_products,
         'cart_product_ids': cart_product_ids,
-    })
+    }
+    return render(request, 'products/product_detail.html', context)
 
 from django.db import transaction
 
@@ -526,6 +523,13 @@ def toggle_wishlist(request, product_id):
             product=product
         )
         
+        if request.user.is_authenticated:
+            UserInteraction.objects.create(
+                user=request.user,
+                product=product,
+                interaction_type='wishlist'
+            )
+
         if not created:
             wishlist_item.delete()
             
@@ -560,7 +564,13 @@ def add_to_cart(request, product_id):
             user=request.user,
             product=product
         )
-        
+        if request.user.is_authenticated:
+            UserInteraction.objects.create(
+                user=request.user,
+                product=product,
+                interaction_type='cart'
+            )
+                
         return JsonResponse({
             'status': 'success', 
             'message': 'Product added to cart',
