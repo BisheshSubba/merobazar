@@ -25,41 +25,54 @@ def register_view(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.role = 'user'
-            user.is_active = False   # deactivate until verified
+
+            # user.is_active = False   # deactivate until verified (DISABLED)
+            user.is_active = True      # activate immediately (NO email verification)
             user.save()
 
-            # Send activation email
-            current_site = get_current_site(request)
-            subject = "Confirm your Gmail account"
-            message = render_to_string('userapp/email_verification.html', {
-                'user': user,
-                'domain': current_site.domain,
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'token': default_token_generator.make_token(user),
-            })
-            email = EmailMessage(subject, message, to=[user.email])
-            email.send()
+            # --- EMAIL VERIFICATION DISABLED ---
+            # current_site = get_current_site(request)
+            # subject = "Confirm your Gmail account"
+            # message = render_to_string('userapp/email_verification.html', {
+            #     'user': user,
+            #     'domain': current_site.domain,
+            #     'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            #     'token': default_token_generator.make_token(user),
+            # })
+            # email = EmailMessage(subject, message, to=[user.email])
+            # email.send()
+            # ------------------------------------
 
-            # Instead of redirecting to login, show confirmation page
-            return render(request, 'userapp/check_email.html', {'email': user.email})
+            # return render(request, 'userapp/check_email.html', {'email': user.email})
+            # Instead of verification page, go straight to login
+            messages.success(request, "Account created successfully! You can now log in.")
+            return redirect('user_login')
+
     else:
         form = UserRegisterForm()
     return render(request, 'userapp/register.html', {'form': form})
 
-def activate_view(request, uidb64, token):
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = CustomUser.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-        user = None
 
-    if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True
-        user.save()
-        messages.success(request, "Your email has been verified! You can now log in.")
-        return redirect('user_login')
-    else:
-        return render(request, 'userapp/activation_failed.html')
+def activate_view(request, uidb64, token):
+    # --- EMAIL ACTIVATION DISABLED ---
+    # try:
+    #     uid = force_str(urlsafe_base64_decode(uidb64))
+    #     user = CustomUser.objects.get(pk=uid)
+    # except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+    #     user = None
+
+    # if user is not None and default_token_generator.check_token(user, token):
+    #     user.is_active = True
+    #     user.save()
+    #     messages.success(request, "Your email has been verified! You can now log in.")
+    #     return redirect('user_login')
+    # else:
+    #     return render(request, 'userapp/activation_failed.html')
+    # ---------------------------------
+
+    # New simple redirect
+    return redirect('user_login')
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -72,26 +85,27 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
 
-            # Check if user is inactive due to email verification
-            if not user.is_active:
-                messages.error(request, "Your account is inactive. Please check your email to verify your account.", extra_tags='login')
-                
-                # Optional: resend verification email link
-                resend = request.POST.get("resend_verification")
-                if resend == "true":
-                    current_site = get_current_site(request)
-                    subject = "Confirm your Gmail account"
-                    message = render_to_string('userapp/email_verification.html', {
-                        'user': user,
-                        'domain': current_site.domain,
-                        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                        'token': default_token_generator.make_token(user),
-                    })
-                    email = EmailMessage(subject, message, to=[user.email])
-                    email.send()
-                    messages.success(request, "Verification email resent. Please check your inbox.", extra_tags='login')
-
-                return redirect('user_login')
+            # --- REMOVE INACTIVE USER BLOCKING ---
+            # if not user.is_active:
+            #     messages.error(request, "Your account is inactive. Please check your email to verify your account.", extra_tags='login')
+            #
+            #     # Optional: resend verification email link (DISABLED)
+            #     resend = request.POST.get("resend_verification")
+            #     if resend == "true":
+            #         current_site = get_current_site(request)
+            #         subject = "Confirm your Gmail account"
+            #         message = render_to_string('userapp/email_verification.html', {
+            #             'user': user,
+            #             'domain': current_site.domain,
+            #             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            #             'token': default_token_generator.make_token(user),
+            #         })
+            #         email = EmailMessage(subject, message, to=[user.email])
+            #         email.send()
+            #         messages.success(request, "Verification email resent. Please check your inbox.", extra_tags='login')
+            #
+            #     return redirect('user_login')
+            # --------------------------------------
 
             if user.role == 'admin':
                 messages.error(request, "You don't have permission to access this login page. Please use the admin login.", extra_tags='login')
@@ -100,10 +114,12 @@ def login_view(request):
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!", extra_tags='login')
             return redirect('user_dashboard')
+
     else:
         form = LoginForm()
 
     return render(request, 'userapp/login.html', {'form': form})
+
 
 def user_dashboard(request):
     categories = Category.objects.prefetch_related('subcategories').all()
