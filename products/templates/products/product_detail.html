@@ -1,7 +1,21 @@
 {% extends 'userapp/base.html' %}
 {% load static %}
 
+{% block extra_js %}
+<script>
+gtag('event', 'product_item', {
+  items: [{
+    item_id: '{{ product.id }}',
+    item_name: '{{ product.name }}',
+    price: '{{ product.price }}',
+    quantity: 1
+  }]
+});
+</script>
+{% endblock %}
+
 {% block title %}{{ product.name }} - MeroBazar{% endblock %}
+
 
 {% block content %}
 <div class="container my-3 my-md-4">

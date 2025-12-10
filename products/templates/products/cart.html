@@ -1,4 +1,32 @@
 {% extends 'userapp/base.html' %}
+
+
+{% block extra_js %}
+<script>
+if (data.status === 'success') {
+    // GA4 remove_from_cart event
+    if (typeof gtag !== 'undefined') {
+        const productId = row.querySelector('.product-name').href.split('/').pop();
+        const productName = row.querySelector('.product-name').textContent.trim();
+        const productPrice = parseFloat(row.querySelector('.price-text').textContent.replace('Rs.','').trim());
+
+        gtag('event', 'remove_from_cart', {
+            currency: 'NPR',
+            value: productPrice,
+            items: [{
+                item_id: productId,
+                item_name: productName,
+                price: productPrice,
+                quantity: 1
+            }]
+        });
+        console.log('GA4 remove_from_cart fired for ' + productName);
+    }
+}
+</script>
+{% endblock %}
+
+
 {% block content %}
 
 <style>
